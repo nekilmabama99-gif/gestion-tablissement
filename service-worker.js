@@ -5,7 +5,7 @@
 // stockées en local sur l'appareil (localStorage) et ne transitent jamais par
 // un serveur : rien à voir avec ce cache, qui ne concerne que le "code" de l'appli.
 
-const CACHE_NAME = 'gestion-etablissement-v1';
+const CACHE_NAME = 'gestion-etablissement-v2';
 const FICHIERS_A_METTRE_EN_CACHE = [
   './',
   './index.html',

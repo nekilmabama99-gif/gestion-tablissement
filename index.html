@@ -2249,6 +2249,7 @@ function renderPersonnel(){
     <form id="form-personnel" class="form-grid">
       <div class="field"><label>Nom</label><input name="nom" required></div>
       <div class="field"><label>Prénom</label><input name="prenom" required></div>
+      <div class="field"><label>Matricule</label><input name="matricule" placeholder="ex: ENS-2026-014"></div>
       <div class="field"><label>Fonction</label><select name="fonction" id="new-personnel-fonction">${fonctionOptions}</select></div>
       <div class="field" id="new-personnel-matiere-field"><label>Matière (si enseignant)</label><input name="matiere" placeholder="ex: Physique-Chimie"></div>
       <div class="field" id="new-personnel-type-field"><label>Type</label>
@@ -2283,9 +2284,9 @@ function renderPersonnelCategoriePanel(fonction, liste){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Nom</th><th>Prénom</th>${estEnseignantCat ? '<th>Matière</th><th>Type</th><th>Détail</th>' : '<th>Salaire fixe</th>'}<th>Contact</th><th>Statut</th><th></th></tr></thead>
+        <thead><tr><th>Nom</th><th>Prénom</th><th>Matricule</th>${estEnseignantCat ? '<th>Matière</th><th>Type</th><th>Détail</th>' : '<th>Salaire fixe</th>'}<th>Contact</th><th>Statut</th><th></th></tr></thead>
         <tbody>
-        ${liste.length===0 ? `<tr class="empty-row"><td colspan="${estEnseignantCat?7:6}">Aucun membre dans cette catégorie.</td></tr>` :
+        ${liste.length===0 ? `<tr class="empty-row"><td colspan="${estEnseignantCat?8:7}">Aucun membre dans cette catégorie.</td></tr>` :
           liste.map(p=>{
             const cls = p.statut==='Actif'?'actif':(p.statut==='Congé'?'conge':'inactif');
             let colsSpecifiques;
@@ -2295,7 +2296,9 @@ function renderPersonnelCategoriePanel(fonction, liste){
             } else {
               colsSpecifiques = `<td><input type="number" min="0" class="inline-num" data-action="edit-salaire-fixe" data-id="${p.id}" value="${Number(p.salaireFixe||0)}"></td>`;
             }
-            return `<tr><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td>${colsSpecifiques}<td>${esc(p.contact)||'—'}</td>
+            return `<tr><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td>
+              <td><input class="inline-num" style="width:130px;" data-action="edit-matricule-personnel" data-id="${p.id}" value="${esc(p.matricule)||''}" placeholder="—"></td>
+              ${colsSpecifiques}<td>${esc(p.contact)||'—'}</td>
               <td><span class="badge ${cls}">${esc(p.statut)}</span></td>
               <td><button class="btn danger small" data-action="del-personnel" data-id="${p.id}">Supprimer</button></td></tr>`;
           }).join('')}
@@ -3175,17 +3178,17 @@ function buildPersonnelCategorieListHTML(fonction){
   const rows = liste.map((p,i)=>{
     if(estEnseignant){
       const detail = p.typePersonnel==='Permanent' ? `${p.niveauEnseignement||'—'} — ${p.heuresSemaine||0} h/sem.` : 'Vacataire';
-      return `<tr><td>${i+1}</td><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td><td>${esc(p.matiere)||'—'}</td><td>${esc(detail)}</td><td>${esc(p.contact)||'—'}</td><td>${esc(p.statut)}</td></tr>`;
+      return `<tr><td>${i+1}</td><td>${esc(p.matricule)||'—'}</td><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td><td>${esc(p.matiere)||'—'}</td><td>${esc(detail)}</td><td>${esc(p.contact)||'—'}</td><td>${esc(p.statut)}</td></tr>`;
     }
-    return `<tr><td>${i+1}</td><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td><td>${fmt(p.salaireFixe)}</td><td>${esc(p.contact)||'—'}</td><td>${esc(p.statut)}</td></tr>`;
+    return `<tr><td>${i+1}</td><td>${esc(p.matricule)||'—'}</td><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td><td>${fmt(p.salaireFixe)}</td><td>${esc(p.contact)||'—'}</td><td>${esc(p.statut)}</td></tr>`;
   }).join('');
   return `
     <div class="bulletin" style="max-width:700px;">
       ${printHeader()}
       <h3>Personnel — ${esc(fonction)} (${liste.length})</h3>
       <table class="receipt-table">
-        <thead><tr><th>N°</th><th>Nom</th><th>Prénom</th>${estEnseignant?'<th>Matière</th><th>Type</th>':'<th>Salaire fixe</th>'}<th>Contact</th><th>Statut</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7">Aucun membre.</td></tr>'}</tbody>
+        <thead><tr><th>N°</th><th>Matricule</th><th>Nom</th><th>Prénom</th>${estEnseignant?'<th>Matière</th><th>Type</th>':'<th>Salaire fixe</th>'}<th>Contact</th><th>Statut</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8">Aucun membre.</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -3504,8 +3507,8 @@ function attachHandlers(){
   document.querySelectorAll('[data-action="export-csv-personnel"]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const fonction = btn.dataset.fonction;
-      const lignes = PERSONNEL.filter(p=>p.fonction===fonction).map(p=>[p.nom, p.prenom, p.matiere||'', p.typePersonnel||'', p.contact, p.statut, p.salaireFixe||'']);
-      exportCSV(`personnel_${fonction}`, ['Nom','Prénom','Matière','Type','Contact','Statut','Salaire fixe'], lignes);
+      const lignes = PERSONNEL.filter(p=>p.fonction===fonction).map(p=>[p.matricule||'', p.nom, p.prenom, p.matiere||'', p.typePersonnel||'', p.contact, p.statut, p.salaireFixe||'']);
+      exportCSV(`personnel_${fonction}`, ['Matricule','Nom','Prénom','Matière','Type','Contact','Statut','Salaire fixe'], lignes);
     });
   });
   document.querySelectorAll('[data-action="export-csv-classement-blanc"]').forEach(btn=>{
@@ -3891,7 +3894,7 @@ function attachHandlers(){
       const f = new FormData(e.target);
       const fonction = f.get('fonction');
       const estEnseignant = fonction==='Enseignant';
-      PERSONNEL.push({ id: uid(), nom: f.get('nom'), prenom: f.get('prenom'), fonction,
+      PERSONNEL.push({ id: uid(), nom: f.get('nom'), prenom: f.get('prenom'), matricule: (f.get('matricule')||'').trim(), fonction,
         matiere: estEnseignant ? f.get('matiere') : '',
         typePersonnel: estEnseignant ? f.get('typePersonnel') : '',
         niveauEnseignement: (estEnseignant && f.get('typePersonnel')==='Permanent') ? f.get('niveauEnseignement') : '',
@@ -3913,6 +3916,12 @@ function attachHandlers(){
       input.addEventListener('change', async ()=>{
         const p = PERSONNEL.find(x=>x.id===input.dataset.id);
         if(p){ p.salaireFixe = Number(input.value)||0; await savePersonnel(); showToast('Salaire fixe mis à jour'); }
+      });
+    });
+    document.querySelectorAll('[data-action="edit-matricule-personnel"]').forEach(input=>{
+      input.addEventListener('change', async ()=>{
+        const p = PERSONNEL.find(x=>x.id===input.dataset.id);
+        if(p){ p.matricule = input.value.trim(); await savePersonnel(); showToast('Matricule mis à jour'); }
       });
     });
     document.querySelectorAll('[data-action="print-personnel-categorie"]').forEach(btn=>{
