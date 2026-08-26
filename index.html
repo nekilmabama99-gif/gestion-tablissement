@@ -537,6 +537,25 @@ const DEFAULT_PARAMS = {
   paysNom: 'BURKINA FASO',
   devise: 'La Patrie ou la Mort, Nous Vaincrons',
   ministere: "MINISTÈRE DE L'ÉDUCATION NATIONALE, DE L'ALPHABÉTISATION ET DE LA PROMOTION DES LANGUES NATIONALES",
+  certifSoussigneIntro: "Je soussigné(e), {directeur} de l'établissement {etablissement}, certifie que l'élève :",
+  certifScolariteTexte: "est régulièrement inscrit(e) et suit assidûment les cours en classe de {classe} au titre de l'année scolaire {annee}.",
+  certifNonRedevanceOk: "est à jour de ses frais de scolarité et n'est redevable d'aucune somme envers l'établissement à la date de ce jour.",
+  certifNonRedevanceKo: "n'est pas à jour de ses frais de scolarité et demeure redevable d'un solde de {solde} envers l'établissement à la date de ce jour.",
+  certifFormuleFinale: "En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.",
+  attestationFelicitationsIntro: "La Direction de l'établissement {etablissement} félicite chaleureusement :",
+  attestationFelicitationsMentionFinale: "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !",
+  attestationReconnaissanceIntro: "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :",
+  attestationReconnaissanceMentionFinale: "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.",
+  mentionsFelicitations: [
+    "pour avoir obtenu la meilleure moyenne de sa classe",
+    "pour son excellent travail et sa régularité",
+    "pour ses efforts et sa progression remarquables"
+  ],
+  motifsReconnaissance: [
+    "pour son engagement et la qualité de son enseignement durant l'année scolaire",
+    "pour sa contribution exemplaire à la vie de l'établissement",
+    "pour ses années de loyaux services au sein de l'établissement"
+  ],
   personnalises: []
 };
 
@@ -720,6 +739,17 @@ async function loadAll(){
   if(PARAMS.seuilAdmissibleBlancTerminale===undefined) PARAMS.seuilAdmissibleBlancTerminale = 8.5;
   if(PARAMS.texteEnteteDeliberationBlanc===undefined) PARAMS.texteEnteteDeliberationBlanc = "Sous réserve d'un contrôle approfondi, les candidats dont les noms suivent sont déclarés {decision}.";
   if(PARAMS.texteFinDeliberationBlanc===undefined) PARAMS.texteFinDeliberationBlanc = "Arrêter la présente liste à {nombre} noms.";
+  if(PARAMS.certifSoussigneIntro===undefined) PARAMS.certifSoussigneIntro = "Je soussigné(e), {directeur} de l'établissement {etablissement}, certifie que l'élève :";
+  if(PARAMS.certifScolariteTexte===undefined) PARAMS.certifScolariteTexte = "est régulièrement inscrit(e) et suit assidûment les cours en classe de {classe} au titre de l'année scolaire {annee}.";
+  if(PARAMS.certifNonRedevanceOk===undefined) PARAMS.certifNonRedevanceOk = "est à jour de ses frais de scolarité et n'est redevable d'aucune somme envers l'établissement à la date de ce jour.";
+  if(PARAMS.certifNonRedevanceKo===undefined) PARAMS.certifNonRedevanceKo = "n'est pas à jour de ses frais de scolarité et demeure redevable d'un solde de {solde} envers l'établissement à la date de ce jour.";
+  if(PARAMS.certifFormuleFinale===undefined) PARAMS.certifFormuleFinale = "En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.";
+  if(PARAMS.attestationFelicitationsIntro===undefined) PARAMS.attestationFelicitationsIntro = "La Direction de l'établissement {etablissement} félicite chaleureusement :";
+  if(PARAMS.attestationFelicitationsMentionFinale===undefined) PARAMS.attestationFelicitationsMentionFinale = "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !";
+  if(PARAMS.attestationReconnaissanceIntro===undefined) PARAMS.attestationReconnaissanceIntro = "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :";
+  if(PARAMS.attestationReconnaissanceMentionFinale===undefined) PARAMS.attestationReconnaissanceMentionFinale = "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.";
+  if(PARAMS.mentionsFelicitations===undefined) PARAMS.mentionsFelicitations = ["pour avoir obtenu la meilleure moyenne de sa classe","pour son excellent travail et sa régularité","pour ses efforts et sa progression remarquables"];
+  if(PARAMS.motifsReconnaissance===undefined) PARAMS.motifsReconnaissance = ["pour son engagement et la qualité de son enseignement durant l'année scolaire","pour sa contribution exemplaire à la vie de l'établissement","pour ses années de loyaux services au sein de l'établissement"];
   if(PARAMS.codeSuppression===undefined) PARAMS.codeSuppression = '';
   if(PARAMS.paysNom===undefined) PARAMS.paysNom = 'BURKINA FASO';
   if(PARAMS.devise===undefined) PARAMS.devise = 'La Patrie ou la Mort, Nous Vaincrons';
@@ -2334,23 +2364,17 @@ function renderDocuments(){
 
   let champsSpecifiques = '';
   if(docTypeTab==='felicitations'){
+    const mentionOptions = PARAMS.mentionsFelicitations.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
     champsSpecifiques = `
       <div class="field"><label>Trimestre concerné</label><select id="doc-trimestre-select">${trimestreOptions}</select></div>
       <div class="field"><label>Mention</label>
-        <select id="doc-mention-select">
-          <option value="pour avoir obtenu la meilleure moyenne de sa classe">Major de la classe</option>
-          <option value="pour son excellent travail et sa régularité">Excellence / régularité</option>
-          <option value="pour ses efforts et sa progression remarquables">Progrès remarquables</option>
-        </select>
+        <select id="doc-mention-select">${mentionOptions || '<option value="">Aucune mention configurée</option>'}</select>
       </div>`;
   } else if(docTypeTab==='reconnaissance'){
+    const motifOptions = PARAMS.motifsReconnaissance.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
     champsSpecifiques = `
       <div class="field"><label>Motif</label>
-        <select id="doc-motif-select">
-          <option value="pour son engagement et la qualité de son enseignement durant l'année scolaire">Engagement et qualité de l'enseignement</option>
-          <option value="pour sa contribution exemplaire à la vie de l'établissement">Contribution à la vie de l'établissement</option>
-          <option value="pour ses années de loyaux services au sein de l'établissement">Loyaux services</option>
-        </select>
+        <select id="doc-motif-select">${motifOptions || '<option value="">Aucun motif configuré</option>'}</select>
       </div>`;
   }
 
@@ -2393,16 +2417,23 @@ function buildCertificatScolariteHTML(eleveId){
   const naissance = (el.dateNaissance || el.lieuNaissance) ?
     ` né(e) le <strong>${naissanceDate || '________________'}</strong> à <strong>${el.lieuNaissance?esc(el.lieuNaissance):'________________'}</strong>,` : '';
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const introTexte = esc(PARAMS.certifSoussigneIntro)
+    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le Directeur / la Directrice')
+    .replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const corpsTexte = esc(PARAMS.certifScolariteTexte)
+    .replace(/\{classe\}/g, `<strong>${esc(el.classe)}</strong>`)
+    .replace(/\{annee\}/g, `<strong>${anneeLib}</strong>`);
+  const formuleFinale = esc(PARAMS.certifFormuleFinale);
   return `
     <div class="certificat">
       ${printHeader()}
       <h2>Certificat de scolarité</h2>
       <div class="certificat-corps">
-        <p>Je soussigné(e), <strong>${directeurNom?esc(directeurNom):'le Directeur / la Directrice'}</strong> de l'établissement <strong>${schoolName}</strong>, certifie que l'élève :</p>
+        <p>${introTexte}</p>
         <p class="certificat-eleve-nom"><strong>${esc(el.nom)} ${esc(el.prenom)}</strong>${naissance}<br>
         immatriculé(e) sous le numéro <strong>${esc(el.matricule)}</strong>,</p>
-        <p>est régulièrement inscrit(e) et suit assidûment les cours en classe de <strong>${esc(el.classe)}</strong> au titre de l'année scolaire <strong>${anneeLib}</strong>.</p>
-        <p>En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.</p>
+        <p>${corpsTexte}</p>
+        <p>${formuleFinale}</p>
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
@@ -2422,18 +2453,23 @@ function buildCertificatNonRedevanceHTML(eleveId){
   const solde = Math.max(0, (el.fraisAnnuel||0) - paye);
   const estSolde = solde<=0;
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const introTexte = esc(PARAMS.certifSoussigneIntro)
+    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le Directeur / la Directrice')
+    .replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const statutTexte = estSolde
+    ? esc(PARAMS.certifNonRedevanceOk)
+    : esc(PARAMS.certifNonRedevanceKo).replace(/\{solde\}/g, `<strong>${fmt(solde)}</strong>`);
+  const formuleFinale = esc(PARAMS.certifFormuleFinale);
   return `
     <div class="certificat">
       ${printHeader()}
       <h2>Certificat de non-redevance</h2>
       <div class="certificat-corps">
-        <p>Je soussigné(e), <strong>${directeurNom?esc(directeurNom):'le Directeur / la Directrice'}</strong> de l'établissement <strong>${schoolName}</strong>, certifie que l'élève :</p>
+        <p>${introTexte}</p>
         <p class="certificat-eleve-nom"><strong>${esc(el.nom)} ${esc(el.prenom)}</strong>, immatriculé(e) sous le numéro <strong>${esc(el.matricule)}</strong>,
         inscrit(e) en classe de <strong>${esc(el.classe)}</strong> au titre de l'année scolaire <strong>${anneeLib}</strong>,</p>
-        <p>${estSolde
-          ? `est à jour de ses frais de scolarité et n'est redevable d'aucune somme envers l'établissement à la date de ce jour.`
-          : `n'est <strong>pas</strong> à jour de ses frais de scolarité et demeure redevable d'un solde de <strong>${fmt(solde)}</strong> envers l'établissement à la date de ce jour.`}</p>
-        <p>En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.</p>
+        <p>${statutTexte}</p>
+        <p>${formuleFinale}</p>
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
@@ -2453,6 +2489,8 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
   const classement = rangDansClasse(eleveId, el.classe, trimestre);
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
   const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
+  const introTexte = esc(PARAMS.attestationFelicitationsIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const mentionFinale = esc(PARAMS.attestationFelicitationsMentionFinale);
   return `
     <div class="attestation">
       ${watermark}
@@ -2461,11 +2499,11 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
       <h1>Attestation de félicitations</h1>
       <div class="attestation-souslabel">Année scolaire ${anneeLib} — ${esc(trimestre)}</div>
       <div class="attestation-ornement">✦ ✦ ✦</div>
-      <div class="attestation-texte">La Direction de l'établissement <strong>${schoolName}</strong> félicite chaleureusement :</div>
+      <div class="attestation-texte">${introTexte}</div>
       <div class="attestation-nom">${esc(el.nom)} ${esc(el.prenom)}</div>
       <div class="attestation-texte">Élève en classe de <strong>${esc(el.classe)}</strong>,
         ${esc(mention || "pour son excellent travail")}${classement.rang ? `, ayant obtenu une moyenne de <strong>${data.moyenneGenerale!==null?data.moyenneGenerale.toFixed(2):'—'}/20</strong> et le rang <strong>${classement.rang} / ${classement.effectif}</strong> de sa classe` : ''} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
-      <div class="attestation-mention">Toutes nos félicitations et nos encouragements à persévérer sur cette voie !</div>
+      <div class="attestation-mention">${mentionFinale}</div>
       <table class="signature-table">
         <tr>
           <td><div class="sig-label">Fait le ${today}</div></td>
@@ -2484,6 +2522,8 @@ function buildAttestationReconnaissanceHTML(personnelId, motif){
   const anneeLib = esc(anneeLibelle(anneeActiveId));
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
   const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
+  const introTexte = esc(PARAMS.attestationReconnaissanceIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const mentionFinale = esc(PARAMS.attestationReconnaissanceMentionFinale);
   return `
     <div class="attestation">
       ${watermark}
@@ -2492,11 +2532,11 @@ function buildAttestationReconnaissanceHTML(personnelId, motif){
       <h1>Attestation de reconnaissance</h1>
       <div class="attestation-souslabel">Année scolaire ${anneeLib}</div>
       <div class="attestation-ornement">✦ ✦ ✦</div>
-      <div class="attestation-texte">La Direction de l'établissement <strong>${schoolName}</strong> exprime toute sa reconnaissance à :</div>
+      <div class="attestation-texte">${introTexte}</div>
       <div class="attestation-nom">${esc(p.nom)} ${esc(p.prenom)}</div>
       <div class="attestation-texte">${esc(p.fonction)}${p.matiere?' — '+esc(p.matiere):''} au sein de l'établissement,
         ${esc(motif || "pour son engagement et la qualité de son travail durant l'année scolaire")} ${anneeLib}.</div>
-      <div class="attestation-mention">Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.</div>
+      <div class="attestation-mention">${mentionFinale}</div>
       <table class="signature-table">
         <tr>
           <td><div class="sig-label">Fait le ${today}</div></td>
@@ -3261,6 +3301,25 @@ function renderParametres(){
   ${renderListEditor('Jours de la semaine (emploi du temps)', 'joursSemaine', "Colonnes de la grille d'emploi du temps, dans l'ordre.")}
   ${renderCreneauxEditor()}
   ${renderListEditor('Fonctions du personnel', 'fonctionsPersonnel', "Utilisées dans le formulaire du personnel.")}
+
+  <div class="panel" style="border-left:4px solid var(--gold);">
+    <div class="panel-head"><h3>Certificats &amp; attestations</h3><p class="desc" style="width:100%;">Textes utilisés pour générer les certificats et attestations dans l'onglet « Certificats ». Les mots entre accolades (ex. {classe}) sont remplacés automatiquement — ne les supprimez pas, vous pouvez seulement les déplacer dans la phrase.</p></div>
+    <form id="form-textes-certificats" class="form-grid" style="grid-template-columns:1fr;">
+      <div class="field"><label>Formule d'introduction (certificats — utilisez {directeur} et {etablissement})</label><input name="certifSoussigneIntro" value="${esc(PARAMS.certifSoussigneIntro)}" required></div>
+      <div class="field"><label>Certificat de scolarité — corps du texte (utilisez {classe} et {annee})</label><input name="certifScolariteTexte" value="${esc(PARAMS.certifScolariteTexte)}" required></div>
+      <div class="field"><label>Certificat de non-redevance — si l'élève est à jour</label><input name="certifNonRedevanceOk" value="${esc(PARAMS.certifNonRedevanceOk)}" required></div>
+      <div class="field"><label>Certificat de non-redevance — si l'élève est redevable (utilisez {solde})</label><input name="certifNonRedevanceKo" value="${esc(PARAMS.certifNonRedevanceKo)}" required></div>
+      <div class="field"><label>Formule finale des certificats</label><input name="certifFormuleFinale" value="${esc(PARAMS.certifFormuleFinale)}" required></div>
+      <div class="field"><label>Attestation de félicitations — phrase d'introduction (utilisez {etablissement})</label><input name="attestationFelicitationsIntro" value="${esc(PARAMS.attestationFelicitationsIntro)}" required></div>
+      <div class="field"><label>Attestation de félicitations — mention finale</label><input name="attestationFelicitationsMentionFinale" value="${esc(PARAMS.attestationFelicitationsMentionFinale)}" required></div>
+      <div class="field"><label>Attestation de reconnaissance — phrase d'introduction (utilisez {etablissement})</label><input name="attestationReconnaissanceIntro" value="${esc(PARAMS.attestationReconnaissanceIntro)}" required></div>
+      <div class="field"><label>Attestation de reconnaissance — mention finale</label><input name="attestationReconnaissanceMentionFinale" value="${esc(PARAMS.attestationReconnaissanceMentionFinale)}" required></div>
+      <button class="btn secondary" type="submit">Enregistrer les textes</button>
+    </form>
+  </div>
+
+  ${renderListEditor('Mentions — attestation de félicitations', 'mentionsFelicitations', "Liste proposée dans le menu déroulant « Mention » lors de la génération d'une attestation de félicitations.")}
+  ${renderListEditor('Motifs — attestation de reconnaissance', 'motifsReconnaissance', "Liste proposée dans le menu déroulant « Motif » lors de la génération d'une attestation de reconnaissance.")}
 
   <div class="panel">
     <div class="panel-head"><h3>Paramètres personnalisés</h3><p class="desc" style="width:100%;">Pour tout paramètre futur ou imprévu qui ne rentre pas dans les catégories ci-dessus.</p></div>
@@ -4597,6 +4656,21 @@ function attachHandlers(){
       PARAMS.texteEnteteDeliberationBlanc = (f.get('texteEntete')||'').trim() || PARAMS.texteEnteteDeliberationBlanc;
       PARAMS.texteFinDeliberationBlanc = (f.get('texteFin')||'').trim() || PARAMS.texteFinDeliberationBlanc;
       await saveParams(); showToast('Textes de liste enregistrés'); render();
+    });
+
+    document.getElementById('form-textes-certificats')?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      PARAMS.certifSoussigneIntro = (f.get('certifSoussigneIntro')||'').trim() || PARAMS.certifSoussigneIntro;
+      PARAMS.certifScolariteTexte = (f.get('certifScolariteTexte')||'').trim() || PARAMS.certifScolariteTexte;
+      PARAMS.certifNonRedevanceOk = (f.get('certifNonRedevanceOk')||'').trim() || PARAMS.certifNonRedevanceOk;
+      PARAMS.certifNonRedevanceKo = (f.get('certifNonRedevanceKo')||'').trim() || PARAMS.certifNonRedevanceKo;
+      PARAMS.certifFormuleFinale = (f.get('certifFormuleFinale')||'').trim() || PARAMS.certifFormuleFinale;
+      PARAMS.attestationFelicitationsIntro = (f.get('attestationFelicitationsIntro')||'').trim() || PARAMS.attestationFelicitationsIntro;
+      PARAMS.attestationFelicitationsMentionFinale = (f.get('attestationFelicitationsMentionFinale')||'').trim() || PARAMS.attestationFelicitationsMentionFinale;
+      PARAMS.attestationReconnaissanceIntro = (f.get('attestationReconnaissanceIntro')||'').trim() || PARAMS.attestationReconnaissanceIntro;
+      PARAMS.attestationReconnaissanceMentionFinale = (f.get('attestationReconnaissanceMentionFinale')||'').trim() || PARAMS.attestationReconnaissanceMentionFinale;
+      await saveParams(); showToast('Textes enregistrés'); render();
     });
 
     document.getElementById('form-paie')?.addEventListener('submit', async (e)=>{
