@@ -311,11 +311,46 @@
   .bulletin-pleine-page .mini-sig-nom{font-size:10.5px;}
   .bulletin-pleine-page .mini-sig-line{margin-top:15px;}
 
+  /* ---------- Certificats administratifs (scolarité, non-redevance) — format sobre officiel ---------- */
+  .certificat{font-family:var(--sans);color:#111;max-width:620px;margin:0 auto;min-height:230mm;box-sizing:border-box;display:flex;flex-direction:column;}
+  .certificat h2{font-family:var(--serif);color:var(--navy);text-align:center;font-size:18px;margin:26px 0 4px 0;text-transform:uppercase;letter-spacing:.06em;}
+  .certificat-corps{font-size:13.5px;line-height:2;margin-top:26px;text-align:justify;}
+  .certificat-corps p{margin:0 0 14px 0;}
+  .certificat-eleve-nom{text-align:center;font-size:15px;}
+  .certificat-ref{font-size:10.5px;color:var(--ink-soft);text-align:right;margin-top:4px;}
+  .certificat .signature-table{margin-top:auto;padding-top:50px;}
+
+  /* ---------- Attestations d'honneur (félicitations, reconnaissance) — format stylé avec filigrane ---------- */
+  .attestation{
+    font-family:var(--serif); color:var(--ink); max-width:720px; margin:0 auto;
+    min-height:250mm; box-sizing:border-box; position:relative; overflow:hidden;
+    border:3px solid var(--gold); outline:1px solid var(--navy); outline-offset:-9px;
+    padding:36px 48px; display:flex; flex-direction:column; align-items:center; text-align:center;
+    background:var(--paper);
+  }
+  .attestation-watermark{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:55%; opacity:0.09; z-index:0; pointer-events:none;
+  }
+  .attestation > *{position:relative; z-index:1;}
+  .attestation .doc-officiel{margin-bottom:2px;}
+  .attestation .doc-logo{max-width:62px;max-height:62px;margin:0 auto 2px auto;}
+  .attestation-titre-doc{font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-top:16px;}
+  .attestation h1{font-family:var(--serif);font-size:30px;color:var(--navy);letter-spacing:.07em;text-transform:uppercase;margin:6px 0 2px 0;}
+  .attestation-souslabel{font-size:11px;color:var(--ink-soft);font-style:italic;margin-bottom:20px;}
+  .attestation-ornement{font-size:18px;color:var(--gold);letter-spacing:.5em;margin:2px 0 18px 0;}
+  .attestation-nom{font-family:var(--serif);font-size:25px;color:var(--gold);border-bottom:1px solid var(--gold);display:inline-block;padding:2px 30px 8px 30px;margin:4px 0 22px 0;}
+  .attestation-texte{font-size:13.5px;line-height:1.9;max-width:520px;margin:0 auto 18px auto;}
+  .attestation-mention{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:22px;font-family:var(--sans);}
+  .attestation .signature-table{width:100%;margin-top:auto;padding-top:26px;}
+  .attestation .sig-label{font-size:11px;}
+  .attestation .sig-line{margin-top:34px;}
+
   @media print{
     body *{visibility:hidden;}
     #print-area, #print-area *{visibility:visible;}
     #print-area{display:block;position:absolute;left:0;top:0;width:100%;padding:14px;}
-    .bulletin, .receipt{page-break-inside:avoid;}
+    .bulletin, .receipt, .certificat, .attestation{page-break-inside:avoid;}
     @page{ size:A4; margin:10mm; }
   }
 
@@ -393,6 +428,10 @@
     <button class="nav-btn" data-tab="personnel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.3 6.5-6.3s6.5 2.7 6.5 6.3"/><circle cx="18" cy="8" r="2.4"/><path d="M15.5 13.9c2.9.3 5 2.7 5 6.1"/></svg>
       Personnel
+    </button>
+    <button class="nav-btn" data-tab="documents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+      Certificats
     </button>
     <button class="nav-btn" data-tab="absences">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg>
@@ -533,6 +572,7 @@ let examenBlancActifTab = null;
 let classeBlancTab = null;
 let matiereBlancTab = null;
 let classeMatiereParamTab = null; // classe actuellement affichée dans le panneau « Matières et coefficients » (par classe)
+let docTypeTab = 'scolarite'; // onglet Certificats : type de document actuellement sélectionné
 
 /* ---------- Années scolaires ---------- */
 let ANNEES = [];            // [{ id, libelle }] — historique des années créées
@@ -905,6 +945,7 @@ const titles = {
   notes: ['Notes & bulletins', "Évaluations pondérées par coefficient et bulletins imprimables"],
   finances: ['Finances', "Frais de scolarité, reçus et dépenses"],
   personnel: ['Personnel', "Enseignants et personnel d'appui"],
+  documents: ['Certificats', "Certificats de scolarité, non-redevance et attestations à imprimer"],
   absences: ['Absences', "Feuille d'appel et suivi des absences par classe"],
   emploi: ['Emploi du temps', "Grille horaire par classe, matière et enseignant"],
   parametres: ['Paramètres', "Personnalisez matières, classes, frais et listes utilisées dans l'application"]
@@ -965,6 +1006,7 @@ function render(){
   else if(currentTab==='notes') c.innerHTML = renderNotes();
   else if(currentTab==='finances') c.innerHTML = renderFinances();
   else if(currentTab==='personnel') c.innerHTML = renderPersonnel();
+  else if(currentTab==='documents') c.innerHTML = renderDocuments();
   else if(currentTab==='absences') c.innerHTML = renderAbsences();
   else if(currentTab==='emploi') c.innerHTML = renderEmploiDuTemps();
   else if(currentTab==='parametres') c.innerHTML = renderParametres();
@@ -1681,6 +1723,8 @@ function renderEleves(){
         <select name="classe" id="new-eleve-classe" required>${classeOptions || '<option value="">Aucune classe définie</option>'}</select>
       </div>
       <div class="field"><label>Sexe</label><select name="sexe"><option>F</option><option>M</option></select></div>
+      <div class="field"><label>Date de naissance</label><input name="dateNaissance" type="date"></div>
+      <div class="field"><label>Lieu de naissance</label><input name="lieuNaissance" placeholder="ex: Ouagadougou"></div>
       <div class="field"><label>Contact parent</label><input name="contact" placeholder="+226 ..."></div>
       <div class="field"><label>Frais annuel (FCFA)</label><input id="new-eleve-frais" name="fraisAnnuel" type="number" min="0"></div>
       <div class="field"><label>Statut</label><select name="statut"><option>Actif</option><option>Inactif</option></select></div>
@@ -2268,6 +2312,198 @@ function renderPersonnel(){
   </div>
 
   ${Object.entries(parFonction).filter(([f,list])=>list.length>0 || true).map(([fonction, liste])=> renderPersonnelCategoriePanel(fonction, liste)).join('')}
+  `;
+}
+
+/* ---------- Certificats & attestations ---------- */
+const DOC_TYPES = {
+  scolarite:      { label: 'Certificat de scolarité',      cible: 'eleve' },
+  nonredevance:   { label: 'Certificat de non-redevance',   cible: 'eleve' },
+  felicitations:  { label: 'Attestation de félicitations',  cible: 'eleve' },
+  reconnaissance: { label: 'Attestation de reconnaissance', cible: 'personnel' }
+};
+
+function renderDocuments(){
+  if(!DOC_TYPES[docTypeTab]) docTypeTab = 'scolarite';
+  const cible = DOC_TYPES[docTypeTab].cible;
+  const elevesTries = ELEVES.slice().sort((a,b)=> a.nom.localeCompare(b.nom));
+  const personnelTries = PERSONNEL.slice().sort((a,b)=> a.nom.localeCompare(b.nom));
+  const elevesOptions = elevesTries.map(e=>`<option value="${e.id}">${esc(e.nom)} ${esc(e.prenom)} — ${esc(e.classe)}</option>`).join('');
+  const personnelOptions = personnelTries.map(p=>`<option value="${p.id}">${esc(p.nom)} ${esc(p.prenom)} — ${esc(p.fonction)}</option>`).join('');
+  const trimestreOptions = PARAMS.trimestres.map(t=>`<option>${esc(t)}</option>`).join('');
+
+  let champsSpecifiques = '';
+  if(docTypeTab==='felicitations'){
+    champsSpecifiques = `
+      <div class="field"><label>Trimestre concerné</label><select id="doc-trimestre-select">${trimestreOptions}</select></div>
+      <div class="field"><label>Mention</label>
+        <select id="doc-mention-select">
+          <option value="pour avoir obtenu la meilleure moyenne de sa classe">Major de la classe</option>
+          <option value="pour son excellent travail et sa régularité">Excellence / régularité</option>
+          <option value="pour ses efforts et sa progression remarquables">Progrès remarquables</option>
+        </select>
+      </div>`;
+  } else if(docTypeTab==='reconnaissance'){
+    champsSpecifiques = `
+      <div class="field"><label>Motif</label>
+        <select id="doc-motif-select">
+          <option value="pour son engagement et la qualité de son enseignement durant l'année scolaire">Engagement et qualité de l'enseignement</option>
+          <option value="pour sa contribution exemplaire à la vie de l'établissement">Contribution à la vie de l'établissement</option>
+          <option value="pour ses années de loyaux services au sein de l'établissement">Loyaux services</option>
+        </select>
+      </div>`;
+  }
+
+  return `
+  <div class="panel">
+    <div class="panel-head"><h3>Certificats &amp; attestations</h3><p class="desc" style="width:100%;">Générez en quelques secondes les documents administratifs courants, prêts à imprimer.</p></div>
+    <div class="tabs-sub">
+      ${Object.entries(DOC_TYPES).map(([key,t])=>`<button data-doctype="${key}" class="${docTypeTab===key?'active':''}">${esc(t.label)}</button>`).join('')}
+    </div>
+    <div class="form-grid">
+      ${cible==='eleve' ?
+        `<div class="field"><label>Élève</label><select id="doc-eleve-select">${elevesOptions || '<option value="">Aucun élève enregistré</option>'}</select></div>` :
+        `<div class="field"><label>Membre du personnel</label><select id="doc-personnel-select">${personnelOptions || '<option value="">Aucun personnel enregistré</option>'}</select></div>`}
+      ${champsSpecifiques}
+    </div>
+    <button class="btn gold" id="btn-generer-doc" type="button" style="margin-top:10px;">Générer le document</button>
+    ${(cible==='eleve' && elevesTries.length===0) || (cible==='personnel' && personnelTries.length===0) ?
+      `<p class="muted" style="margin-top:8px;">${cible==='eleve' ? "Ajoutez d'abord des élèves dans l'onglet « Élèves »." : "Ajoutez d'abord du personnel dans l'onglet « Personnel »."}</p>` : ''}
+  </div>
+  <div class="panel">
+    <div id="doc-preview"></div>
+  </div>
+  `;
+}
+
+function formatDateFrLongue(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr);
+  if(isNaN(d)) return '';
+  return d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+}
+
+function buildCertificatScolariteHTML(eleveId){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const naissanceDate = formatDateFrLongue(el.dateNaissance);
+  const naissance = (el.dateNaissance || el.lieuNaissance) ?
+    ` né(e) le <strong>${naissanceDate || '________________'}</strong> à <strong>${el.lieuNaissance?esc(el.lieuNaissance):'________________'}</strong>,` : '';
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  return `
+    <div class="certificat">
+      ${printHeader()}
+      <h2>Certificat de scolarité</h2>
+      <div class="certificat-corps">
+        <p>Je soussigné(e), <strong>${directeurNom?esc(directeurNom):'le Directeur / la Directrice'}</strong> de l'établissement <strong>${schoolName}</strong>, certifie que l'élève :</p>
+        <p class="certificat-eleve-nom"><strong>${esc(el.nom)} ${esc(el.prenom)}</strong>${naissance}<br>
+        immatriculé(e) sous le numéro <strong>${esc(el.matricule)}</strong>,</p>
+        <p>est régulièrement inscrit(e) et suit assidûment les cours en classe de <strong>${esc(el.classe)}</strong> au titre de l'année scolaire <strong>${anneeLib}</strong>.</p>
+        <p>En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.</p>
+      </div>
+      <p class="certificat-ref">Fait le ${today}</p>
+      <table class="signature-table">
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildCertificatNonRedevanceHTML(eleveId){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const paye = totalPayeParEleve(eleveId);
+  const solde = Math.max(0, (el.fraisAnnuel||0) - paye);
+  const estSolde = solde<=0;
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  return `
+    <div class="certificat">
+      ${printHeader()}
+      <h2>Certificat de non-redevance</h2>
+      <div class="certificat-corps">
+        <p>Je soussigné(e), <strong>${directeurNom?esc(directeurNom):'le Directeur / la Directrice'}</strong> de l'établissement <strong>${schoolName}</strong>, certifie que l'élève :</p>
+        <p class="certificat-eleve-nom"><strong>${esc(el.nom)} ${esc(el.prenom)}</strong>, immatriculé(e) sous le numéro <strong>${esc(el.matricule)}</strong>,
+        inscrit(e) en classe de <strong>${esc(el.classe)}</strong> au titre de l'année scolaire <strong>${anneeLib}</strong>,</p>
+        <p>${estSolde
+          ? `est à jour de ses frais de scolarité et n'est redevable d'aucune somme envers l'établissement à la date de ce jour.`
+          : `n'est <strong>pas</strong> à jour de ses frais de scolarité et demeure redevable d'un solde de <strong>${fmt(solde)}</strong> envers l'établissement à la date de ce jour.`}</p>
+        <p>En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.</p>
+      </div>
+      <p class="certificat-ref">Fait le ${today}</p>
+      <table class="signature-table">
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const data = computeTrimestre(eleveId, trimestre);
+  const classement = rangDansClasse(eleveId, el.classe, trimestre);
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
+  return `
+    <div class="attestation">
+      ${watermark}
+      ${printHeader()}
+      <div class="attestation-titre-doc">${esc(schoolName)}</div>
+      <h1>Attestation de félicitations</h1>
+      <div class="attestation-souslabel">Année scolaire ${anneeLib} — ${esc(trimestre)}</div>
+      <div class="attestation-ornement">✦ ✦ ✦</div>
+      <div class="attestation-texte">La Direction de l'établissement <strong>${schoolName}</strong> félicite chaleureusement :</div>
+      <div class="attestation-nom">${esc(el.nom)} ${esc(el.prenom)}</div>
+      <div class="attestation-texte">Élève en classe de <strong>${esc(el.classe)}</strong>,
+        ${esc(mention || "pour son excellent travail")}${classement.rang ? `, ayant obtenu une moyenne de <strong>${data.moyenneGenerale!==null?data.moyenneGenerale.toFixed(2):'—'}/20</strong> et le rang <strong>${classement.rang} / ${classement.effectif}</strong> de sa classe` : ''} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
+      <div class="attestation-mention">Toutes nos félicitations et nos encouragements à persévérer sur cette voie !</div>
+      <table class="signature-table">
+        <tr>
+          <td><div class="sig-label">Fait le ${today}</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildAttestationReconnaissanceHTML(personnelId, motif){
+  const p = PERSONNEL.find(x=>x.id===personnelId);
+  if(!p) return '<p>Membre du personnel introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
+  return `
+    <div class="attestation">
+      ${watermark}
+      ${printHeader()}
+      <div class="attestation-titre-doc">${esc(schoolName)}</div>
+      <h1>Attestation de reconnaissance</h1>
+      <div class="attestation-souslabel">Année scolaire ${anneeLib}</div>
+      <div class="attestation-ornement">✦ ✦ ✦</div>
+      <div class="attestation-texte">La Direction de l'établissement <strong>${schoolName}</strong> exprime toute sa reconnaissance à :</div>
+      <div class="attestation-nom">${esc(p.nom)} ${esc(p.prenom)}</div>
+      <div class="attestation-texte">${esc(p.fonction)}${p.matiere?' — '+esc(p.matiere):''} au sein de l'établissement,
+        ${esc(motif || "pour son engagement et la qualité de son travail durant l'année scolaire")} ${anneeLib}.</div>
+      <div class="attestation-mention">Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.</div>
+      <table class="signature-table">
+        <tr>
+          <td><div class="sig-label">Fait le ${today}</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+        </tr>
+      </table>
+    </div>
   `;
 }
 
@@ -3533,7 +3769,8 @@ function attachHandlers(){
       e.preventDefault();
       const f = new FormData(e.target);
       ELEVES.push({ id: uid(), matricule: (f.get('matricule')||'').trim(), nom: f.get('nom'), prenom: f.get('prenom'), classe: f.get('classe'),
-        sexe: f.get('sexe'), contact: f.get('contact'), fraisAnnuel: Number(f.get('fraisAnnuel'))||0, statut: f.get('statut'),
+        sexe: f.get('sexe'), dateNaissance: f.get('dateNaissance')||'', lieuNaissance: f.get('lieuNaissance')||'',
+        contact: f.get('contact'), fraisAnnuel: Number(f.get('fraisAnnuel'))||0, statut: f.get('statut'),
         aDejaRedouble: f.get('aDejaRedouble')==='1' });
       await saveEleves();
       showToast('Élève ajouté');
@@ -3926,6 +4163,43 @@ function attachHandlers(){
     });
     document.querySelectorAll('[data-action="print-personnel-categorie"]').forEach(btn=>{
       btn.addEventListener('click', ()=> openPrint(buildPersonnelCategorieListHTML(btn.dataset.fonction)));
+    });
+  }
+
+  if(currentTab==='documents'){
+    document.querySelectorAll('[data-doctype]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ docTypeTab = btn.dataset.doctype; render(); });
+    });
+    document.getElementById('btn-generer-doc')?.addEventListener('click', ()=>{
+      let html = '';
+      if(docTypeTab==='scolarite'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        if(!id) return;
+        html = buildCertificatScolariteHTML(id);
+      } else if(docTypeTab==='nonredevance'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        if(!id) return;
+        html = buildCertificatNonRedevanceHTML(id);
+      } else if(docTypeTab==='felicitations'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        const trimestre = document.getElementById('doc-trimestre-select')?.value;
+        const mention = document.getElementById('doc-mention-select')?.value;
+        if(!id) return;
+        html = buildAttestationFelicitationsHTML(id, trimestre, mention);
+      } else if(docTypeTab==='reconnaissance'){
+        const id = document.getElementById('doc-personnel-select')?.value;
+        const motif = document.getElementById('doc-motif-select')?.value;
+        if(!id) return;
+        html = buildAttestationReconnaissanceHTML(id, motif);
+      }
+      document.getElementById('doc-preview').innerHTML = `
+        <div style="border:1px solid var(--line);border-radius:8px;padding:20px;background:#fdfdfc;">${html}</div>
+        <button class="btn gold" id="btn-print-doc" style="margin-top:14px;">Imprimer ce document</button>
+      `;
+      document.getElementById('btn-print-doc').addEventListener('click', ()=>{
+        const node = document.querySelector('#doc-preview .certificat, #doc-preview .attestation');
+        if(node) openPrint(node.outerHTML);
+      });
     });
   }
 
@@ -4489,8 +4763,8 @@ function attachHandlers(){
 // libre (comportement historique). Dès qu'un premier compte existe, une connexion
 // est exigée à chaque ouverture et chaque rôle ne voit que les onglets autorisés.
 const ROLES = {
-  direction:   { label: 'Direction',                 tabs: ['dashboard','eleves','notes','finances','personnel','absences','emploi','parametres'] },
-  comptable:   { label: 'Comptable / Économat',       tabs: ['dashboard','eleves','finances'] },
+  direction:   { label: 'Direction',                 tabs: ['dashboard','eleves','notes','finances','personnel','documents','absences','emploi','parametres'] },
+  comptable:   { label: 'Comptable / Économat',       tabs: ['dashboard','eleves','finances','documents'] },
   surveillant: { label: 'Surveillant(e) général(e)',  tabs: ['dashboard','eleves','absences','emploi'] },
   enseignant:  { label: 'Enseignant(e)',              tabs: ['dashboard','notes'] },
 };
