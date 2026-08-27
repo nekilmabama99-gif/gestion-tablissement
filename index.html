@@ -546,10 +546,16 @@ const DEFAULT_PARAMS = {
   attestationFelicitationsMentionFinale: "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !",
   attestationReconnaissanceIntro: "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :",
   attestationReconnaissanceMentionFinale: "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.",
+  convocationLieu: "au bureau de la Direction",
+  convocationIntro: "Nous avons l'honneur de vous informer que la situation de votre enfant nécessite un entretien avec la Direction de l'établissement {etablissement}.",
+  convocationPaiementTexte: "Motif : retard dans le règlement des frais de scolarité. À la date de ce jour, un solde de {solde} reste dû sur des frais annuels fixés à {fraisAnnuel} pour la classe de {classe}.",
+  convocationAbsencesTexte: "Motif : cumul d'absences et/ou de retards constaté au cours du {trimestre} — {joursAbsence} jour(s) d'absence et {heuresRetard} heure(s) de retard.",
+  convocationRendezVous: "Nous vous prions de bien vouloir vous présenter le {date} à {heure}, {lieu}, munis de la présente convocation.",
+  convocationFormule: "Votre présence est vivement souhaitée dans l'intérêt du suivi scolaire de votre enfant.",
   mentionsFelicitations: [
-    "pour avoir obtenu la meilleure moyenne de sa classe",
-    "pour son excellent travail et sa régularité",
-    "pour ses efforts et sa progression remarquables"
+    {id:'mf1', texte:'pour avoir obtenu la meilleure moyenne de sa classe', affichage:'moyenne'},
+    {id:'mf2', texte:'pour son excellent travail et sa régularité', affichage:'moyenne'},
+    {id:'mf3', texte:'pour ses efforts et sa progression remarquables', affichage:'progression'}
   ],
   motifsReconnaissance: [
     "pour son engagement et la qualité de son enseignement durant l'année scolaire",
@@ -748,8 +754,15 @@ async function loadAll(){
   if(PARAMS.attestationFelicitationsMentionFinale===undefined) PARAMS.attestationFelicitationsMentionFinale = "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !";
   if(PARAMS.attestationReconnaissanceIntro===undefined) PARAMS.attestationReconnaissanceIntro = "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :";
   if(PARAMS.attestationReconnaissanceMentionFinale===undefined) PARAMS.attestationReconnaissanceMentionFinale = "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.";
-  if(PARAMS.mentionsFelicitations===undefined) PARAMS.mentionsFelicitations = ["pour avoir obtenu la meilleure moyenne de sa classe","pour son excellent travail et sa régularité","pour ses efforts et sa progression remarquables"];
+  if(PARAMS.mentionsFelicitations===undefined) PARAMS.mentionsFelicitations = [{id:'mf1',texte:'pour avoir obtenu la meilleure moyenne de sa classe',affichage:'moyenne'},{id:'mf2',texte:'pour son excellent travail et sa régularité',affichage:'moyenne'},{id:'mf3',texte:'pour ses efforts et sa progression remarquables',affichage:'progression'}];
+  else if(PARAMS.mentionsFelicitations.length>0 && typeof PARAMS.mentionsFelicitations[0]==='string') PARAMS.mentionsFelicitations = PARAMS.mentionsFelicitations.map(t=>({id:uid(), texte:t, affichage:/progr/i.test(t)?'progression':'moyenne'}));
   if(PARAMS.motifsReconnaissance===undefined) PARAMS.motifsReconnaissance = ["pour son engagement et la qualité de son enseignement durant l'année scolaire","pour sa contribution exemplaire à la vie de l'établissement","pour ses années de loyaux services au sein de l'établissement"];
+  if(PARAMS.convocationLieu===undefined) PARAMS.convocationLieu = "au bureau de la Direction";
+  if(PARAMS.convocationIntro===undefined) PARAMS.convocationIntro = "Nous avons l'honneur de vous informer que la situation de votre enfant nécessite un entretien avec la Direction de l'établissement {etablissement}.";
+  if(PARAMS.convocationPaiementTexte===undefined) PARAMS.convocationPaiementTexte = "Motif : retard dans le règlement des frais de scolarité. À la date de ce jour, un solde de {solde} reste dû sur des frais annuels fixés à {fraisAnnuel} pour la classe de {classe}.";
+  if(PARAMS.convocationAbsencesTexte===undefined) PARAMS.convocationAbsencesTexte = "Motif : cumul d'absences et/ou de retards constaté au cours du {trimestre} — {joursAbsence} jour(s) d'absence et {heuresRetard} heure(s) de retard.";
+  if(PARAMS.convocationRendezVous===undefined) PARAMS.convocationRendezVous = "Nous vous prions de bien vouloir vous présenter le {date} à {heure}, {lieu}, munis de la présente convocation.";
+  if(PARAMS.convocationFormule===undefined) PARAMS.convocationFormule = "Votre présence est vivement souhaitée dans l'intérêt du suivi scolaire de votre enfant.";
   if(PARAMS.codeSuppression===undefined) PARAMS.codeSuppression = '';
   if(PARAMS.paysNom===undefined) PARAMS.paysNom = 'BURKINA FASO';
   if(PARAMS.devise===undefined) PARAMS.devise = 'La Patrie ou la Mort, Nous Vaincrons';
@@ -2350,7 +2363,9 @@ const DOC_TYPES = {
   scolarite:      { label: 'Certificat de scolarité',      cible: 'eleve' },
   nonredevance:   { label: 'Certificat de non-redevance',   cible: 'eleve' },
   felicitations:  { label: 'Attestation de félicitations',  cible: 'eleve' },
-  reconnaissance: { label: 'Attestation de reconnaissance', cible: 'personnel' }
+  reconnaissance: { label: 'Attestation de reconnaissance', cible: 'personnel' },
+  convpaiement:   { label: 'Convocation — paiement',        cible: 'eleve' },
+  convabsences:   { label: 'Convocation — absences/retards',cible: 'eleve' }
 };
 
 function renderDocuments(){
@@ -2364,7 +2379,7 @@ function renderDocuments(){
 
   let champsSpecifiques = '';
   if(docTypeTab==='felicitations'){
-    const mentionOptions = PARAMS.mentionsFelicitations.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    const mentionOptions = PARAMS.mentionsFelicitations.map(m=>`<option value="${m.id}">${esc(m.texte)}</option>`).join('');
     champsSpecifiques = `
       <div class="field"><label>Trimestre concerné</label><select id="doc-trimestre-select">${trimestreOptions}</select></div>
       <div class="field"><label>Mention</label>
@@ -2376,6 +2391,17 @@ function renderDocuments(){
       <div class="field"><label>Motif</label>
         <select id="doc-motif-select">${motifOptions || '<option value="">Aucun motif configuré</option>'}</select>
       </div>`;
+  } else if(docTypeTab==='convpaiement'){
+    champsSpecifiques = `
+      <div class="field"><label>Date du rendez-vous</label><input type="date" id="doc-conv-date"></div>
+      <div class="field"><label>Heure</label><input type="time" id="doc-conv-heure"></div>
+      <div class="field"><label>Lieu</label><input type="text" id="doc-conv-lieu" value="${esc(PARAMS.convocationLieu)}"></div>`;
+  } else if(docTypeTab==='convabsences'){
+    champsSpecifiques = `
+      <div class="field"><label>Trimestre concerné</label><select id="doc-trimestre-select">${trimestreOptions}</select></div>
+      <div class="field"><label>Date du rendez-vous</label><input type="date" id="doc-conv-date"></div>
+      <div class="field"><label>Heure</label><input type="time" id="doc-conv-heure"></div>
+      <div class="field"><label>Lieu</label><input type="text" id="doc-conv-lieu" value="${esc(PARAMS.convocationLieu)}"></div>`;
   }
 
   return `
@@ -2479,7 +2505,7 @@ function buildCertificatNonRedevanceHTML(eleveId){
   `;
 }
 
-function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
+function buildAttestationFelicitationsHTML(eleveId, trimestre, mention, affichage){
   const el = ELEVES.find(e=>e.id===eleveId);
   if(!el) return '<p>Élève introuvable.</p>';
   const schoolName = esc(document.getElementById('school-name').value);
@@ -2491,6 +2517,26 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
   const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
   const introTexte = esc(PARAMS.attestationFelicitationsIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
   const mentionFinale = esc(PARAMS.attestationFelicitationsMentionFinale);
+  const moyActuelle = data.moyenneGenerale;
+
+  let blocMoyennes = '';
+  if(affichage==='progression'){
+    const idxT = PARAMS.trimestres.indexOf(trimestre);
+    const trimestrePrecedent = idxT>0 ? PARAMS.trimestres[idxT-1] : null;
+    const moyPrecedente = trimestrePrecedent ? computeTrimestre(eleveId, trimestrePrecedent).moyenneGenerale : null;
+    const delta = (moyActuelle!==null && moyPrecedente!==null) ? (moyActuelle - moyPrecedente) : null;
+    blocMoyennes = `<div class="stat-row" style="justify-content:center;">
+      ${trimestrePrecedent ? statChip('Moyenne — '+trimestrePrecedent, moyPrecedente!==null?moyPrecedente.toFixed(2)+'/20':'—') : ''}
+      ${statChip('Moyenne — '+trimestre, moyActuelle!==null?moyActuelle.toFixed(2)+'/20':'—', true)}
+      ${delta!==null ? statChip('Progression', (delta>=0?'+':'')+delta.toFixed(2)+' pt', true) : ''}
+    </div>`;
+  } else if(affichage==='moyenne'){
+    blocMoyennes = `<div class="stat-row" style="justify-content:center;">
+      ${statChip('Moyenne — '+trimestre, moyActuelle!==null?moyActuelle.toFixed(2)+'/20':'—', true)}
+      ${classement.rang ? statChip('Rang', classement.rang+' / '+classement.effectif) : ''}
+    </div>`;
+  }
+
   return `
     <div class="attestation">
       ${watermark}
@@ -2502,7 +2548,8 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention){
       <div class="attestation-texte">${introTexte}</div>
       <div class="attestation-nom">${esc(el.nom)} ${esc(el.prenom)}</div>
       <div class="attestation-texte">Élève en classe de <strong>${esc(el.classe)}</strong>,
-        ${esc(mention || "pour son excellent travail")}${classement.rang ? `, ayant obtenu une moyenne de <strong>${data.moyenneGenerale!==null?data.moyenneGenerale.toFixed(2):'—'}/20</strong> et le rang <strong>${classement.rang} / ${classement.effectif}</strong> de sa classe` : ''} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
+        ${esc(mention || "pour son excellent travail")} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
+      ${blocMoyennes}
       <div class="attestation-mention">${mentionFinale}</div>
       <table class="signature-table">
         <tr>
@@ -2542,6 +2589,81 @@ function buildAttestationReconnaissanceHTML(personnelId, motif){
           <td><div class="sig-label">Fait le ${today}</div></td>
           <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
         </tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildConvocationPaiementHTML(eleveId, dateConv, heureConv, lieuConv){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const paye = totalPayeParEleve(eleveId);
+  const solde = Math.max(0, (el.fraisAnnuel||0) - paye);
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const introTexte = esc(PARAMS.convocationIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const motifTexte = esc(PARAMS.convocationPaiementTexte)
+    .replace(/\{solde\}/g, `<strong>${fmt(solde)}</strong>`)
+    .replace(/\{fraisAnnuel\}/g, `<strong>${fmt(el.fraisAnnuel||0)}</strong>`)
+    .replace(/\{classe\}/g, `<strong>${esc(el.classe)}</strong>`);
+  const rdvTexte = esc(PARAMS.convocationRendezVous)
+    .replace(/\{date\}/g, `<strong>${dateConv?formatDateFrLongue(dateConv):'____________'}</strong>`)
+    .replace(/\{heure\}/g, `<strong>${esc(heureConv)||'________'}</strong>`)
+    .replace(/\{lieu\}/g, esc(lieuConv)||'au bureau de la Direction');
+  const formuleTexte = esc(PARAMS.convocationFormule);
+  return `
+    <div class="certificat">
+      ${printHeader()}
+      <h2>Lettre de convocation</h2>
+      <div class="certificat-corps">
+        <p>À l'attention de : Parent(s) / Tuteur(trice) de l'élève <strong>${esc(el.nom)} ${esc(el.prenom)}</strong>,
+        classe de <strong>${esc(el.classe)}</strong> (matricule <strong>${esc(el.matricule)}</strong>)${el.contact?', contact : '+esc(el.contact):''}.</p>
+        <p>${introTexte}</p>
+        <p>${motifTexte}</p>
+        <p>${rdvTexte}</p>
+        <p>${formuleTexte}</p>
+      </div>
+      <p class="certificat-ref">Fait le ${today}</p>
+      <table class="signature-table">
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildConvocationAbsencesHTML(eleveId, trimestre, dateConv, heureConv, lieuConv){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const assid = assiduiteEleveTrimestre(eleveId, trimestre);
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const introTexte = esc(PARAMS.convocationIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const motifTexte = esc(PARAMS.convocationAbsencesTexte)
+    .replace(/\{trimestre\}/g, `<strong>${esc(trimestre)}</strong>`)
+    .replace(/\{joursAbsence\}/g, `<strong>${assid.joursAbsence}</strong>`)
+    .replace(/\{heuresRetard\}/g, `<strong>${assid.heuresRetard}</strong>`);
+  const rdvTexte = esc(PARAMS.convocationRendezVous)
+    .replace(/\{date\}/g, `<strong>${dateConv?formatDateFrLongue(dateConv):'____________'}</strong>`)
+    .replace(/\{heure\}/g, `<strong>${esc(heureConv)||'________'}</strong>`)
+    .replace(/\{lieu\}/g, esc(lieuConv)||'au bureau de la Direction');
+  const formuleTexte = esc(PARAMS.convocationFormule);
+  return `
+    <div class="certificat">
+      ${printHeader()}
+      <h2>Lettre de convocation</h2>
+      <div class="certificat-corps">
+        <p>À l'attention de : Parent(s) / Tuteur(trice) de l'élève <strong>${esc(el.nom)} ${esc(el.prenom)}</strong>,
+        classe de <strong>${esc(el.classe)}</strong> (matricule <strong>${esc(el.matricule)}</strong>)${el.contact?', contact : '+esc(el.contact):''}.</p>
+        <p>${introTexte}</p>
+        <p>${motifTexte}</p>
+        <p>${rdvTexte}</p>
+        <p>${formuleTexte}</p>
+      </div>
+      <p class="certificat-ref">Fait le ${today}</p>
+      <table class="signature-table">
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -3314,11 +3436,17 @@ function renderParametres(){
       <div class="field"><label>Attestation de félicitations — mention finale</label><input name="attestationFelicitationsMentionFinale" value="${esc(PARAMS.attestationFelicitationsMentionFinale)}" required></div>
       <div class="field"><label>Attestation de reconnaissance — phrase d'introduction (utilisez {etablissement})</label><input name="attestationReconnaissanceIntro" value="${esc(PARAMS.attestationReconnaissanceIntro)}" required></div>
       <div class="field"><label>Attestation de reconnaissance — mention finale</label><input name="attestationReconnaissanceMentionFinale" value="${esc(PARAMS.attestationReconnaissanceMentionFinale)}" required></div>
+      <div class="field"><label>Convocations — lieu par défaut</label><input name="convocationLieu" value="${esc(PARAMS.convocationLieu)}" required></div>
+      <div class="field"><label>Convocations — phrase d'introduction (utilisez {etablissement})</label><input name="convocationIntro" value="${esc(PARAMS.convocationIntro)}" required></div>
+      <div class="field"><label>Convocation paiement — motif (utilisez {solde}, {fraisAnnuel}, {classe})</label><input name="convocationPaiementTexte" value="${esc(PARAMS.convocationPaiementTexte)}" required></div>
+      <div class="field"><label>Convocation absences/retards — motif (utilisez {trimestre}, {joursAbsence}, {heuresRetard})</label><input name="convocationAbsencesTexte" value="${esc(PARAMS.convocationAbsencesTexte)}" required></div>
+      <div class="field"><label>Convocations — formule de rendez-vous (utilisez {date}, {heure}, {lieu})</label><input name="convocationRendezVous" value="${esc(PARAMS.convocationRendezVous)}" required></div>
+      <div class="field"><label>Convocations — formule finale</label><input name="convocationFormule" value="${esc(PARAMS.convocationFormule)}" required></div>
       <button class="btn secondary" type="submit">Enregistrer les textes</button>
     </form>
   </div>
 
-  ${renderListEditor('Mentions — attestation de félicitations', 'mentionsFelicitations', "Liste proposée dans le menu déroulant « Mention » lors de la génération d'une attestation de félicitations.")}
+  ${renderMentionsFelicitationsEditor()}
   ${renderListEditor('Motifs — attestation de reconnaissance', 'motifsReconnaissance', "Liste proposée dans le menu déroulant « Motif » lors de la génération d'une attestation de reconnaissance.")}
 
   <div class="panel">
@@ -3356,6 +3484,47 @@ function renderListEditor(title, key, desc){
       <input placeholder="Ajouter un élément..." data-add-input="${key}">
       <button class="btn secondary small" data-action="add-list-item" data-key="${key}">Ajouter</button>
     </div>
+  </div>
+  `;
+}
+
+// Éditeur dédié aux mentions de félicitations : chaque mention porte un texte ET un type d'affichage
+// (quelle(s) moyenne(s) imprimer sur l'attestation générée avec cette mention).
+function renderMentionsFelicitationsEditor(){
+  const items = PARAMS.mentionsFelicitations;
+  const rows = items.map(m=>`
+    <tr data-mention-id="${m.id}">
+      <td>${esc(m.texte)}</td>
+      <td>
+        <select class="select-mention-affichage" data-mention-id="${m.id}">
+          <option value="moyenne" ${m.affichage==='moyenne'?'selected':''}>Moyenne du trimestre</option>
+          <option value="progression" ${m.affichage==='progression'?'selected':''}>Progression (trimestre précédent → actuel)</option>
+          <option value="aucun" ${m.affichage==='aucun'?'selected':''}>Aucune moyenne affichée</option>
+        </select>
+      </td>
+      <td><button class="btn danger" data-action="del-mention-felicitation" data-mention-id="${m.id}">Suppr.</button></td>
+    </tr>
+  `).join('');
+  return `
+  <div class="panel">
+    <div class="panel-head"><h3>Mentions — attestation de félicitations</h3><p class="desc" style="width:100%;">Chaque mention définit aussi ce qui s'affiche sur l'attestation : la moyenne du trimestre, ou une comparaison avec le trimestre précédent pour illustrer une progression.</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mention</th><th>Affichage sur l'attestation</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="3">Aucune mention.</td></tr>'}</tbody>
+      </table>
+    </div>
+    <form id="form-ajout-mention" class="form-grid" style="margin-top:14px;">
+      <div class="field"><label>Nouvelle mention</label><input name="texte" required placeholder="ex: pour sa participation exemplaire"></div>
+      <div class="field"><label>Affichage</label>
+        <select name="affichage">
+          <option value="moyenne">Moyenne du trimestre</option>
+          <option value="progression">Progression (trimestre précédent → actuel)</option>
+          <option value="aucun">Aucune moyenne affichée</option>
+        </select>
+      </div>
+      <button class="btn gold" type="submit">Ajouter</button>
+    </form>
   </div>
   `;
 }
@@ -4242,14 +4411,30 @@ function attachHandlers(){
       } else if(docTypeTab==='felicitations'){
         const id = document.getElementById('doc-eleve-select')?.value;
         const trimestre = document.getElementById('doc-trimestre-select')?.value;
-        const mention = document.getElementById('doc-mention-select')?.value;
+        const mentionId = document.getElementById('doc-mention-select')?.value;
+        const mentionObj = PARAMS.mentionsFelicitations.find(m=>m.id===mentionId);
         if(!id) return;
-        html = buildAttestationFelicitationsHTML(id, trimestre, mention);
+        html = buildAttestationFelicitationsHTML(id, trimestre, mentionObj?.texte, mentionObj?.affichage||'moyenne');
       } else if(docTypeTab==='reconnaissance'){
         const id = document.getElementById('doc-personnel-select')?.value;
         const motif = document.getElementById('doc-motif-select')?.value;
         if(!id) return;
         html = buildAttestationReconnaissanceHTML(id, motif);
+      } else if(docTypeTab==='convpaiement'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        const dateConv = document.getElementById('doc-conv-date')?.value;
+        const heureConv = document.getElementById('doc-conv-heure')?.value;
+        const lieuConv = document.getElementById('doc-conv-lieu')?.value;
+        if(!id) return;
+        html = buildConvocationPaiementHTML(id, dateConv, heureConv, lieuConv);
+      } else if(docTypeTab==='convabsences'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        const trimestre = document.getElementById('doc-trimestre-select')?.value;
+        const dateConv = document.getElementById('doc-conv-date')?.value;
+        const heureConv = document.getElementById('doc-conv-heure')?.value;
+        const lieuConv = document.getElementById('doc-conv-lieu')?.value;
+        if(!id) return;
+        html = buildConvocationAbsencesHTML(id, trimestre, dateConv, heureConv, lieuConv);
       }
       document.getElementById('doc-preview').innerHTML = `
         <div style="border:1px solid var(--line);border-radius:8px;padding:20px;background:#fdfdfc;">${html}</div>
@@ -4670,7 +4855,34 @@ function attachHandlers(){
       PARAMS.attestationFelicitationsMentionFinale = (f.get('attestationFelicitationsMentionFinale')||'').trim() || PARAMS.attestationFelicitationsMentionFinale;
       PARAMS.attestationReconnaissanceIntro = (f.get('attestationReconnaissanceIntro')||'').trim() || PARAMS.attestationReconnaissanceIntro;
       PARAMS.attestationReconnaissanceMentionFinale = (f.get('attestationReconnaissanceMentionFinale')||'').trim() || PARAMS.attestationReconnaissanceMentionFinale;
+      PARAMS.convocationLieu = (f.get('convocationLieu')||'').trim() || PARAMS.convocationLieu;
+      PARAMS.convocationIntro = (f.get('convocationIntro')||'').trim() || PARAMS.convocationIntro;
+      PARAMS.convocationPaiementTexte = (f.get('convocationPaiementTexte')||'').trim() || PARAMS.convocationPaiementTexte;
+      PARAMS.convocationAbsencesTexte = (f.get('convocationAbsencesTexte')||'').trim() || PARAMS.convocationAbsencesTexte;
+      PARAMS.convocationRendezVous = (f.get('convocationRendezVous')||'').trim() || PARAMS.convocationRendezVous;
+      PARAMS.convocationFormule = (f.get('convocationFormule')||'').trim() || PARAMS.convocationFormule;
       await saveParams(); showToast('Textes enregistrés'); render();
+    });
+
+    document.getElementById('form-ajout-mention')?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const texte = (f.get('texte')||'').trim();
+      if(!texte) return;
+      PARAMS.mentionsFelicitations.push({ id: uid(), texte, affichage: f.get('affichage')||'moyenne' });
+      await saveParams(); render();
+    });
+    document.querySelectorAll('[data-action="del-mention-felicitation"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        PARAMS.mentionsFelicitations = PARAMS.mentionsFelicitations.filter(m=>m.id!==btn.dataset.mentionId);
+        await saveParams(); render();
+      });
+    });
+    document.querySelectorAll('.select-mention-affichage').forEach(sel=>{
+      sel.addEventListener('change', async ()=>{
+        const m = PARAMS.mentionsFelicitations.find(m=>m.id===sel.dataset.mentionId);
+        if(m){ m.affichage = sel.value; await saveParams(); }
+      });
     });
 
     document.getElementById('form-paie')?.addEventListener('submit', async (e)=>{
