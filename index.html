@@ -191,6 +191,8 @@
 
   .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
   .badge.actif, .badge.paye{background:var(--green-soft);color:var(--green);}
+  .photo-eleve-mini{width:34px;height:34px;border-radius:50%;overflow:hidden;border:1px solid var(--line);background:var(--navy-soft);display:flex;align-items:center;justify-content:center;color:var(--navy);font-weight:700;}
+  .photo-eleve-mini img{width:100%;height:100%;object-fit:cover;}
   .badge.inactif, .badge.impaye{background:var(--red-soft);color:var(--red);}
   .badge.partiel, .badge.conge{background:var(--amber-soft);color:var(--amber);}
 
@@ -345,12 +347,45 @@
   .attestation .signature-table{width:100%;margin-top:auto;padding-top:26px;}
   .attestation .sig-label{font-size:11px;}
   .attestation .sig-line{margin-top:34px;}
+  .attestation.avertissement{border-color:var(--red);}
+  .attestation.avertissement .attestation-titre-doc, .attestation.avertissement h1, .attestation.avertissement .attestation-ornement, .attestation.avertissement .attestation-mention{color:var(--red);}
+  .attestation.avertissement .attestation-nom{color:var(--red);border-color:var(--red);}
+
+  /* ---------- Carte scolaire (badge élève, format carte de crédit CR80) ---------- */
+  .carte-scolaire{
+    width:85.6mm; height:54mm; border-radius:4mm; overflow:hidden; position:relative;
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 68%, #0d1b34 100%);
+    color:#fff; font-family:var(--sans); box-shadow:0 3px 10px rgba(0,0,0,.28);
+    display:flex; flex-direction:column; page-break-inside:avoid; box-sizing:border-box;
+  }
+  .carte-scolaire::before{
+    content:''; position:absolute; top:0; right:-18mm; width:38mm; height:130%;
+    background:linear-gradient(135deg, transparent 42%, var(--gold) 43%, var(--gold) 52%, transparent 53%);
+    opacity:.9; transform:rotate(0deg); pointer-events:none;
+  }
+  .carte-scolaire::after{
+    content:''; position:absolute; left:-10mm; bottom:-10mm; width:26mm; height:26mm; border-radius:50%;
+    background:radial-gradient(circle, rgba(176,141,43,0.35) 0%, transparent 70%); pointer-events:none;
+  }
+  .carte-scolaire-header{display:flex;align-items:center;gap:5px;padding:2.8mm 3.5mm 1mm 3.5mm;position:relative;z-index:1;}
+  .carte-scolaire-header img{width:8mm;height:8mm;object-fit:contain;background:#fff;border-radius:1.5px;padding:0.6mm;flex-shrink:0;}
+  .carte-scolaire-header .ecole-nom{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.15;}
+  .carte-scolaire-titre{font-size:5.5px;letter-spacing:.28em;color:var(--gold-soft);text-transform:uppercase;padding:0 3.5mm;position:relative;z-index:1;}
+  .carte-scolaire-corps{display:flex;gap:3mm;padding:2mm 3.5mm;flex:1;position:relative;z-index:1;align-items:center;}
+  .carte-scolaire-photo{width:17mm;height:20mm;border-radius:1.5mm;border:0.5mm solid var(--gold);background:#2a3f68;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .carte-scolaire-photo img{width:100%;height:100%;object-fit:cover;}
+  .carte-scolaire-photo svg{width:60%;height:60%;opacity:.5;}
+  .carte-scolaire-infos{font-size:7.5px;line-height:1.55;min-width:0;}
+  .carte-scolaire-infos .nom{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;margin-bottom:0.8mm;word-break:break-word;}
+  .carte-scolaire-infos .label{color:var(--gold-soft);font-size:5.8px;text-transform:uppercase;letter-spacing:.05em;}
+  .carte-scolaire-footer{display:flex;justify-content:space-between;align-items:flex-end;padding:1mm 3.5mm 2.5mm 3.5mm;font-size:5.2px;color:rgba(255,255,255,.72);position:relative;z-index:1;}
+  .cartes-grille{display:flex;flex-wrap:wrap;gap:5mm;justify-content:flex-start;}
 
   @media print{
     body *{visibility:hidden;}
     #print-area, #print-area *{visibility:visible;}
     #print-area{display:block;position:absolute;left:0;top:0;width:100%;padding:14px;}
-    .bulletin, .receipt, .certificat, .attestation{page-break-inside:avoid;}
+    .bulletin, .receipt, .certificat, .attestation, .carte-scolaire{page-break-inside:avoid;}
     @page{ size:A4; margin:10mm; }
   }
 
@@ -544,6 +579,9 @@ const DEFAULT_PARAMS = {
   certifFormuleFinale: "En foi de quoi, le présent certificat lui est délivré pour servir et valoir ce que de droit.",
   attestationFelicitationsIntro: "La Direction de l'établissement {etablissement} félicite chaleureusement :",
   attestationFelicitationsMentionFinale: "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !",
+  avertissementBaisseTitre: "Avis de suivi scolaire",
+  avertissementBaisseIntro: "La Direction de l'établissement {etablissement} attire l'attention de la famille sur l'évolution des résultats de :",
+  avertissementBaisseMentionFinale: "Un accompagnement renforcé est vivement recommandé afin d'inverser cette tendance.",
   attestationReconnaissanceIntro: "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :",
   attestationReconnaissanceMentionFinale: "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.",
   convocationLieu: "au bureau de la Direction",
@@ -553,9 +591,9 @@ const DEFAULT_PARAMS = {
   convocationRendezVous: "Nous vous prions de bien vouloir vous présenter le {date} à {heure}, {lieu}, munis de la présente convocation.",
   convocationFormule: "Votre présence est vivement souhaitée dans l'intérêt du suivi scolaire de votre enfant.",
   mentionsFelicitations: [
-    {id:'mf1', texte:'pour avoir obtenu la meilleure moyenne de sa classe', affichage:'moyenne'},
-    {id:'mf2', texte:'pour son excellent travail et sa régularité', affichage:'moyenne'},
-    {id:'mf3', texte:'pour ses efforts et sa progression remarquables', affichage:'progression'}
+    {id:'mf1', label:'Félicitations', texte:'pour avoir obtenu d\'excellents résultats', affichage:'moyenne', seuilMoyenne:16},
+    {id:'mf2', label:"Tableau d'honneur", texte:'pour ses bons résultats et son sérieux', affichage:'moyenne', seuilMoyenne:14},
+    {id:'mf3', label:'Encouragements', texte:'pour ses efforts et sa progression', affichage:'progression', seuilMoyenne:10}
   ],
   motifsReconnaissance: [
     "pour son engagement et la qualité de son enseignement durant l'année scolaire",
@@ -579,6 +617,7 @@ let PROF_PRINCIPAL = {}; // { classe: 'nom du professeur principal' }
 let PAIE = []; // bulletins de salaire mensuels
 let FINANCES = { paiements: [], depenses: [] };
 let PERSONNEL = [];
+let PERSONNEL_ABSENCES = []; // [{ id, personnelId, type:'Congé'|'Maladie'|'Formation'|'Absence injustifiée'|'Autre', dateDebut, dateFin, motif }]
 let PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 let currentTab = 'dashboard';
 let parametresDeverrouille = false;
@@ -598,6 +637,8 @@ let classeBlancTab = null;
 let matiereBlancTab = null;
 let classeMatiereParamTab = null; // classe actuellement affichée dans le panneau « Matières et coefficients » (par classe)
 let docTypeTab = 'scolarite'; // onglet Certificats : type de document actuellement sélectionné
+let docClasseFilter = ''; // filtre classe appliqué à la liste d'élèves dans l'onglet Certificats
+let eleveHistoriqueId = null; // élève actuellement affiché dans l'historique multi-années
 
 /* ---------- Années scolaires ---------- */
 let ANNEES = [];            // [{ id, libelle }] — historique des années créées
@@ -706,6 +747,7 @@ async function loadAll(){
   PAIE = storageGet('paie-data') || [];
   FINANCES = storageGet('finances-data') || { paiements: [], depenses: [] };
   PERSONNEL = storageGet('personnel-data') || [];
+  PERSONNEL_ABSENCES = storageGet('personnel-absences-data') || [];
   const savedParams = storageGet('parametres-data') || {};
   PARAMS = Object.assign({}, DEFAULT_PARAMS, savedParams);
   PARAMS.paie = Object.assign({}, DEFAULT_PARAMS.paie, savedParams.paie || {});
@@ -754,8 +796,14 @@ async function loadAll(){
   if(PARAMS.attestationFelicitationsMentionFinale===undefined) PARAMS.attestationFelicitationsMentionFinale = "Toutes nos félicitations et nos encouragements à persévérer sur cette voie !";
   if(PARAMS.attestationReconnaissanceIntro===undefined) PARAMS.attestationReconnaissanceIntro = "La Direction de l'établissement {etablissement} exprime toute sa reconnaissance à :";
   if(PARAMS.attestationReconnaissanceMentionFinale===undefined) PARAMS.attestationReconnaissanceMentionFinale = "Toute l'équipe pédagogique et administrative lui exprime sa sincère gratitude.";
-  if(PARAMS.mentionsFelicitations===undefined) PARAMS.mentionsFelicitations = [{id:'mf1',texte:'pour avoir obtenu la meilleure moyenne de sa classe',affichage:'moyenne'},{id:'mf2',texte:'pour son excellent travail et sa régularité',affichage:'moyenne'},{id:'mf3',texte:'pour ses efforts et sa progression remarquables',affichage:'progression'}];
-  else if(PARAMS.mentionsFelicitations.length>0 && typeof PARAMS.mentionsFelicitations[0]==='string') PARAMS.mentionsFelicitations = PARAMS.mentionsFelicitations.map(t=>({id:uid(), texte:t, affichage:/progr/i.test(t)?'progression':'moyenne'}));
+  if(PARAMS.mentionsFelicitations===undefined) PARAMS.mentionsFelicitations = [{id:'mf1',label:'Félicitations',texte:"pour avoir obtenu d'excellents résultats",affichage:'moyenne',seuilMoyenne:16},{id:'mf2',label:"Tableau d'honneur",texte:'pour ses bons résultats et son sérieux',affichage:'moyenne',seuilMoyenne:14},{id:'mf3',label:'Encouragements',texte:'pour ses efforts et sa progression',affichage:'progression',seuilMoyenne:10}];
+  else PARAMS.mentionsFelicitations = PARAMS.mentionsFelicitations.map(m=>{
+    if(typeof m==='string') return {id:uid(), label:'Distinction', texte:m, affichage:/progr/i.test(m)?'progression':'moyenne', seuilMoyenne:10};
+    return { id: m.id||uid(), label: m.label||'Distinction', texte: m.texte, affichage: m.affichage||'moyenne', seuilMoyenne: m.seuilMoyenne!==undefined?m.seuilMoyenne:10 };
+  });
+  if(PARAMS.avertissementBaisseTitre===undefined) PARAMS.avertissementBaisseTitre = "Avis de suivi scolaire";
+  if(PARAMS.avertissementBaisseIntro===undefined) PARAMS.avertissementBaisseIntro = "La Direction de l'établissement {etablissement} attire l'attention de la famille sur l'évolution des résultats de :";
+  if(PARAMS.avertissementBaisseMentionFinale===undefined) PARAMS.avertissementBaisseMentionFinale = "Un accompagnement renforcé est vivement recommandé afin d'inverser cette tendance.";
   if(PARAMS.motifsReconnaissance===undefined) PARAMS.motifsReconnaissance = ["pour son engagement et la qualité de son enseignement durant l'année scolaire","pour sa contribution exemplaire à la vie de l'établissement","pour ses années de loyaux services au sein de l'établissement"];
   if(PARAMS.convocationLieu===undefined) PARAMS.convocationLieu = "au bureau de la Direction";
   if(PARAMS.convocationIntro===undefined) PARAMS.convocationIntro = "Nous avons l'honneur de vous informer que la situation de votre enfant nécessite un entretien avec la Direction de l'établissement {etablissement}.";
@@ -827,6 +875,7 @@ const saveDiscipline = () => save('discipline-data', DISCIPLINE);
 const saveEmploi = () => save('emploi-data', EMPLOI);
 const saveFinances = () => save('finances-data', FINANCES);
 const savePersonnel = () => save('personnel-data', PERSONNEL);
+const savePersonnelAbsences = () => save('personnel-absences-data', PERSONNEL_ABSENCES);
 const saveParams = () => save('parametres-data', PARAMS);
 const saveDecisions = () => save('decisions-data', DECISIONS);
 const saveProfPrincipal = () => save('prof-principal-data', PROF_PRINCIPAL);
@@ -926,7 +975,7 @@ function exportBackup(){
     date: new Date().toISOString(),
     schoolName: document.getElementById('school-name').value,
     logo: LOGO_DATA_URL,
-    eleves: ELEVES, notes: NOTES, examensBlancs: EXAMENS_BLANCS, notesBlanc: NOTES_BLANC, decisionsBlanc: DECISIONS_BLANC, absences: ABSENCES, discipline: DISCIPLINE, emploi: EMPLOI, finances: FINANCES, personnel: PERSONNEL, parametres: PARAMS,
+    eleves: ELEVES, notes: NOTES, examensBlancs: EXAMENS_BLANCS, notesBlanc: NOTES_BLANC, decisionsBlanc: DECISIONS_BLANC, absences: ABSENCES, discipline: DISCIPLINE, emploi: EMPLOI, finances: FINANCES, personnel: PERSONNEL, personnelAbsences: PERSONNEL_ABSENCES, parametres: PARAMS,
     decisions: DECISIONS, profPrincipal: PROF_PRINCIPAL, paie: PAIE,
     annees: ANNEES, archives: ARCHIVES, anneeActiveId, utilisateurs: UTILISATEURS,
   };
@@ -957,6 +1006,7 @@ function importBackup(file){
       EMPLOI = data.emploi || [];
       FINANCES = data.finances || { paiements: [], depenses: [] };
       PERSONNEL = data.personnel || [];
+      PERSONNEL_ABSENCES = data.personnelAbsences || [];
       PARAMS = Object.assign({}, DEFAULT_PARAMS, data.parametres || {});
       DECISIONS = data.decisions || {};
       PROF_PRINCIPAL = data.profPrincipal || {};
@@ -968,7 +1018,7 @@ function importBackup(file){
       anneeAffichee = anneeActiveId;
       UTILISATEURS = data.utilisateurs || [];
       if(data.schoolName) document.getElementById('school-name').value = data.schoolName;
-      await Promise.all([saveEleves(), saveNotes(), saveExamensBlancs(), saveNotesBlanc(), saveDecisionsBlanc(), saveAbsences(), saveDiscipline(), saveEmploi(), saveFinances(), savePersonnel(), saveParams(), saveDecisions(), saveProfPrincipal(), savePaie(), saveLogo(), saveAnnees(), saveArchives(), saveUtilisateurs(), save('school-name', data.schoolName||'')]);
+      await Promise.all([saveEleves(), saveNotes(), saveExamensBlancs(), saveNotesBlanc(), saveDecisionsBlanc(), saveAbsences(), saveDiscipline(), saveEmploi(), saveFinances(), savePersonnel(), savePersonnelAbsences(), saveParams(), saveDecisions(), saveProfPrincipal(), savePaie(), saveLogo(), saveAnnees(), saveArchives(), saveUtilisateurs(), save('school-name', data.schoolName||'')]);
       updateCrestDisplay();
       updateAnneeSelect();
       storageSet('derniere-sauvegarde-le', new Date().toISOString());
@@ -1371,6 +1421,7 @@ async function basculerAnneeScolaire(nouveauLibelle){
     decisions: JSON.parse(JSON.stringify(DECISIONS)),
     finances: JSON.parse(JSON.stringify(FINANCES)),
     personnel: JSON.parse(JSON.stringify(PERSONNEL)),
+    personnelAbsences: JSON.parse(JSON.stringify(PERSONNEL_ABSENCES)),
     paie: JSON.parse(JSON.stringify(PAIE)),
     bilan,
   };
@@ -1411,7 +1462,7 @@ async function basculerAnneeScolaire(nouveauLibelle){
 function withArchiveContext(anneeId, fn){
   const archive = ARCHIVES[anneeId];
   if(!archive) return fn();
-  const sauvegarde = { ELEVES, NOTES, EXAMENS_BLANCS, NOTES_BLANC, DECISIONS_BLANC, ABSENCES, DISCIPLINE, EMPLOI, DECISIONS, FINANCES, PERSONNEL, PAIE };
+  const sauvegarde = { ELEVES, NOTES, EXAMENS_BLANCS, NOTES_BLANC, DECISIONS_BLANC, ABSENCES, DISCIPLINE, EMPLOI, DECISIONS, FINANCES, PERSONNEL, PERSONNEL_ABSENCES, PAIE };
   ELEVES = archive.eleves || [];
   NOTES = archive.notes || [];
   EXAMENS_BLANCS = archive.examensBlancs || [];
@@ -1423,13 +1474,14 @@ function withArchiveContext(anneeId, fn){
   DECISIONS = archive.decisions || {};
   FINANCES = archive.finances || { paiements: [], depenses: [] };
   PERSONNEL = archive.personnel || [];
+  PERSONNEL_ABSENCES = archive.personnelAbsences || [];
   PAIE = archive.paie || [];
   try{
     return fn();
   } finally {
     ELEVES = sauvegarde.ELEVES; NOTES = sauvegarde.NOTES; EXAMENS_BLANCS = sauvegarde.EXAMENS_BLANCS;
     NOTES_BLANC = sauvegarde.NOTES_BLANC; DECISIONS_BLANC = sauvegarde.DECISIONS_BLANC; ABSENCES = sauvegarde.ABSENCES; DISCIPLINE = sauvegarde.DISCIPLINE; EMPLOI = sauvegarde.EMPLOI; DECISIONS = sauvegarde.DECISIONS; FINANCES = sauvegarde.FINANCES;
-    PERSONNEL = sauvegarde.PERSONNEL; PAIE = sauvegarde.PAIE;
+    PERSONNEL = sauvegarde.PERSONNEL; PERSONNEL_ABSENCES = sauvegarde.PERSONNEL_ABSENCES; PAIE = sauvegarde.PAIE;
   }
 }
 
@@ -1808,13 +1860,19 @@ function renderClasseElevesPanel(classe, nomFilter){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Matricule</th><th>Nom</th><th>Prénom</th><th>Contact</th><th>Frais annuel</th><th>Payé</th><th>Reste à payer</th><th>Statut</th><th></th></tr></thead>
+        <thead><tr><th>Photo</th><th>Matricule</th><th>Nom</th><th>Prénom</th><th>Contact</th><th>Frais annuel</th><th>Payé</th><th>Reste à payer</th><th>Statut</th><th></th></tr></thead>
         <tbody>
-        ${eleves.length===0 ? '<tr class="empty-row"><td colspan="9">Aucun élève dans cette classe.</td></tr>' :
+        ${eleves.length===0 ? '<tr class="empty-row"><td colspan="10">Aucun élève dans cette classe.</td></tr>' :
           eleves.map(e=>{
             const paye = totalPayeParEleve(e.id);
             const reste = Number(e.fraisAnnuel||0) - paye;
             return `<tr data-id="${e.id}">
+              <td>
+                <label class="photo-eleve-mini" style="cursor:pointer;" title="Changer la photo">
+                  ${e.photo ? `<img src="${e.photo}" alt="">` : '<span>+</span>'}
+                  <input type="file" class="input-photo-eleve" data-id="${e.id}" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                </label>
+              </td>
               <td>${esc(e.matricule)||'—'}</td><td>${esc(e.nom)}</td><td>${esc(e.prenom)}</td><td>${esc(e.contact)||'—'}</td>
               <td><input type="number" min="0" class="inline-num" data-action="edit-frais" data-id="${e.id}" value="${Number(e.fraisAnnuel||0)}"></td>
               <td>${fmt(paye)}</td>
@@ -2355,6 +2413,69 @@ function renderPersonnel(){
   </div>
 
   ${Object.entries(parFonction).filter(([f,list])=>list.length>0 || true).map(([fonction, liste])=> renderPersonnelCategoriePanel(fonction, liste)).join('')}
+  ${renderPersonnelCongesPanel()}
+  `;
+}
+
+/* ---------- Congés & absences du personnel ---------- */
+const TYPES_CONGE_PERSONNEL = ['Congé','Maladie','Formation','Absence injustifiée','Autre'];
+
+function estEnCongeAujourdhui(personnelId){
+  const today = new Date().toISOString().slice(0,10);
+  return PERSONNEL_ABSENCES.some(a=> a.personnelId===personnelId && a.dateDebut<=today && a.dateFin>=today);
+}
+
+function renderPersonnelCongesPanel(){
+  const today = new Date().toISOString().slice(0,10);
+  const enCongeAujourdhui = PERSONNEL.filter(p=>estEnCongeAujourdhui(p.id));
+  const personnelOptions = PERSONNEL.slice().sort((a,b)=>a.nom.localeCompare(b.nom))
+    .map(p=>`<option value="${p.id}">${esc(p.nom)} ${esc(p.prenom)} — ${esc(p.fonction)}</option>`).join('');
+  const typeOptions = TYPES_CONGE_PERSONNEL.map(t=>`<option>${esc(t)}</option>`).join('');
+
+  const entrees = PERSONNEL_ABSENCES.slice().sort((a,b)=> b.dateDebut.localeCompare(a.dateDebut));
+  const rows = entrees.map(a=>{
+    const p = PERSONNEL.find(x=>x.id===a.personnelId);
+    const debut = new Date(a.dateDebut+'T00:00:00');
+    const fin = new Date(a.dateFin+'T00:00:00');
+    const jours = Math.max(1, Math.round((fin-debut)/86400000)+1);
+    const enCours = a.dateDebut<=today && a.dateFin>=today;
+    return `<tr data-id="${a.id}">
+      <td>${p?esc(p.nom)+' '+esc(p.prenom):'—'}</td>
+      <td>${esc(a.type)}</td>
+      <td>${a.dateDebut}</td>
+      <td>${a.dateFin}</td>
+      <td>${jours} j</td>
+      <td>${esc(a.motif)||'—'}</td>
+      <td>${enCours ? '<span class="badge conge">En cours</span>' : ''}</td>
+      <td><button class="btn danger small" data-action="del-conge-personnel" data-id="${a.id}">Supprimer</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="panel" style="border-left:4px solid var(--gold);">
+    <div class="panel-head">
+      <h3>Congés &amp; absences du personnel</h3>
+      <p class="desc" style="width:100%;">Suivi détaillé des congés, maladies, formations et absences du personnel, avec dates précises.</p>
+    </div>
+    ${enCongeAujourdhui.length>0 ? `
+      <div class="stat-row" style="margin-bottom:14px;">
+        ${enCongeAujourdhui.map(p=>statChip(p.nom+' '+p.prenom, "En congé aujourd'hui", true)).join('')}
+      </div>` : `<p class="muted" style="margin-bottom:14px;">Personne en congé aujourd'hui.</p>`}
+    <form id="form-conge-personnel" class="form-grid">
+      <div class="field"><label>Membre du personnel</label><select name="personnelId">${personnelOptions || '<option value="">Aucun personnel enregistré</option>'}</select></div>
+      <div class="field"><label>Type</label><select name="type">${typeOptions}</select></div>
+      <div class="field"><label>Date de début</label><input type="date" name="dateDebut" required></div>
+      <div class="field"><label>Date de fin</label><input type="date" name="dateFin" required></div>
+      <div class="field"><label>Motif (optionnel)</label><input name="motif" placeholder="ex: congé de maternité, stage CAFOP..."></div>
+      <button class="btn gold" type="submit">Enregistrer</button>
+    </form>
+    <div class="table-wrap" style="margin-top:16px;">
+      <table>
+        <thead><tr><th>Personnel</th><th>Type</th><th>Début</th><th>Fin</th><th>Durée</th><th>Motif</th><th></th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8">Aucun congé ou absence enregistré.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
   `;
 }
 
@@ -2365,26 +2486,35 @@ const DOC_TYPES = {
   felicitations:  { label: 'Attestation de félicitations',  cible: 'eleve' },
   reconnaissance: { label: 'Attestation de reconnaissance', cible: 'personnel' },
   convpaiement:   { label: 'Convocation — paiement',        cible: 'eleve' },
-  convabsences:   { label: 'Convocation — absences/retards',cible: 'eleve' }
+  convabsences:   { label: 'Convocation — absences/retards',cible: 'eleve' },
+  carte:          { label: 'Carte scolaire',                cible: 'eleve' },
+  historique:     { label: 'Historique multi-années',       cible: 'eleve' }
 };
 
 function renderDocuments(){
   if(!DOC_TYPES[docTypeTab]) docTypeTab = 'scolarite';
   const cible = DOC_TYPES[docTypeTab].cible;
-  const elevesTries = ELEVES.slice().sort((a,b)=> a.nom.localeCompare(b.nom));
+  const classesNoms = PARAMS.classes.map(c=>c.nom);
+  if(!classesNoms.includes(docClasseFilter)) docClasseFilter = '';
+  let elevesTries = ELEVES.slice().sort((a,b)=> (a.classe.localeCompare(b.classe)) || a.nom.localeCompare(b.nom));
+  if(cible==='eleve' && docClasseFilter) elevesTries = elevesTries.filter(e=>e.classe===docClasseFilter);
   const personnelTries = PERSONNEL.slice().sort((a,b)=> a.nom.localeCompare(b.nom));
   const elevesOptions = elevesTries.map(e=>`<option value="${e.id}">${esc(e.nom)} ${esc(e.prenom)} — ${esc(e.classe)}</option>`).join('');
   const personnelOptions = personnelTries.map(p=>`<option value="${p.id}">${esc(p.nom)} ${esc(p.prenom)} — ${esc(p.fonction)}</option>`).join('');
   const trimestreOptions = PARAMS.trimestres.map(t=>`<option>${esc(t)}</option>`).join('');
 
+  const classeFilterHTML = cible==='eleve' ? `<div class="field"><label>Classe</label><select id="doc-classe-filter"><option value="">Toutes les classes</option>${classesNoms.map(c=>`<option value="${esc(c)}" ${docClasseFilter===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>` : '';
+
   let champsSpecifiques = '';
   if(docTypeTab==='felicitations'){
-    const mentionOptions = PARAMS.mentionsFelicitations.map(m=>`<option value="${m.id}">${esc(m.texte)}</option>`).join('');
+    const mentionOptions = PARAMS.mentionsFelicitations.slice().sort((a,b)=>(Number(b.seuilMoyenne)||0)-(Number(a.seuilMoyenne)||0))
+      .map(m=>`<option value="${m.id}">${esc(m.label)} (≥ ${Number(m.seuilMoyenne)||0}/20)</option>`).join('');
     champsSpecifiques = `
       <div class="field"><label>Trimestre concerné</label><select id="doc-trimestre-select">${trimestreOptions}</select></div>
       <div class="field"><label>Mention</label>
         <select id="doc-mention-select">${mentionOptions || '<option value="">Aucune mention configurée</option>'}</select>
-      </div>`;
+      </div>
+      <div class="field" style="grid-column:1/-1;"><div id="doc-mention-hint" class="muted"></div></div>`;
   } else if(docTypeTab==='reconnaissance'){
     const motifOptions = PARAMS.motifsReconnaissance.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
     champsSpecifiques = `
@@ -2411,14 +2541,23 @@ function renderDocuments(){
       ${Object.entries(DOC_TYPES).map(([key,t])=>`<button data-doctype="${key}" class="${docTypeTab===key?'active':''}">${esc(t.label)}</button>`).join('')}
     </div>
     <div class="form-grid">
+      ${classeFilterHTML}
       ${cible==='eleve' ?
-        `<div class="field"><label>Élève</label><select id="doc-eleve-select">${elevesOptions || '<option value="">Aucun élève enregistré</option>'}</select></div>` :
+        `<div class="field"><label>Élève</label><select id="doc-eleve-select">${elevesOptions || '<option value="">Aucun élève dans cette sélection</option>'}</select></div>` :
         `<div class="field"><label>Membre du personnel</label><select id="doc-personnel-select">${personnelOptions || '<option value="">Aucun personnel enregistré</option>'}</select></div>`}
       ${champsSpecifiques}
     </div>
     <button class="btn gold" id="btn-generer-doc" type="button" style="margin-top:10px;">Générer le document</button>
     ${(cible==='eleve' && elevesTries.length===0) || (cible==='personnel' && personnelTries.length===0) ?
       `<p class="muted" style="margin-top:8px;">${cible==='eleve' ? "Ajoutez d'abord des élèves dans l'onglet « Élèves »." : "Ajoutez d'abord du personnel dans l'onglet « Personnel »."}</p>` : ''}
+    ${docTypeTab==='carte' ? `
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);">
+      <p class="desc" style="width:100%;margin-bottom:8px;">Ou générez en une fois les cartes de toute une classe (à découper après impression) :</p>
+      <div class="form-grid">
+        <div class="field"><label>Classe</label><select id="doc-carte-classe-select">${classesNoms.map(c=>`<option>${esc(c)}</option>`).join('') || '<option value="">Aucune classe configurée</option>'}</select></div>
+      </div>
+      <button class="btn secondary" id="btn-generer-cartes-classe" type="button">Générer les cartes de la classe</button>
+    </div>` : ''}
   </div>
   <div class="panel">
     <div id="doc-preview"></div>
@@ -2505,19 +2644,27 @@ function buildCertificatNonRedevanceHTML(eleveId){
   `;
 }
 
-function buildAttestationFelicitationsHTML(eleveId, trimestre, mention, affichage){
+function mentionSuggereePour(eleveId, trimestre){
+  const moy = computeTrimestre(eleveId, trimestre).moyenneGenerale;
+  if(moy===null) return null;
+  const eligibles = PARAMS.mentionsFelicitations.filter(m=> moy >= (Number(m.seuilMoyenne)||0)).sort((a,b)=> (Number(b.seuilMoyenne)||0)-(Number(a.seuilMoyenne)||0));
+  return eligibles[0] || null;
+}
+
+function buildAttestationFelicitationsHTML(eleveId, trimestre, mentionObj){
   const el = ELEVES.find(e=>e.id===eleveId);
   if(!el) return '<p>Élève introuvable.</p>';
   const schoolName = esc(document.getElementById('school-name').value);
   const directeurNom = PARAMS.directeurNom || '';
   const anneeLib = esc(anneeLibelle(anneeActiveId));
   const data = computeTrimestre(eleveId, trimestre);
-  const classement = rangDansClasse(eleveId, el.classe, trimestre);
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
   const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
   const introTexte = esc(PARAMS.attestationFelicitationsIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
   const mentionFinale = esc(PARAMS.attestationFelicitationsMentionFinale);
   const moyActuelle = data.moyenneGenerale;
+  const affichage = mentionObj?.affichage || 'moyenne';
+  const titre = mentionObj?.label ? esc(mentionObj.label) : 'Attestation de félicitations';
 
   let blocMoyennes = '';
   if(affichage==='progression'){
@@ -2533,7 +2680,6 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention, affichag
   } else if(affichage==='moyenne'){
     blocMoyennes = `<div class="stat-row" style="justify-content:center;">
       ${statChip('Moyenne — '+trimestre, moyActuelle!==null?moyActuelle.toFixed(2)+'/20':'—', true)}
-      ${classement.rang ? statChip('Rang', classement.rang+' / '+classement.effectif) : ''}
     </div>`;
   }
 
@@ -2542,13 +2688,57 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mention, affichag
       ${watermark}
       ${printHeader()}
       <div class="attestation-titre-doc">${esc(schoolName)}</div>
-      <h1>Attestation de félicitations</h1>
+      <h1>${titre}</h1>
       <div class="attestation-souslabel">Année scolaire ${anneeLib} — ${esc(trimestre)}</div>
       <div class="attestation-ornement">✦ ✦ ✦</div>
       <div class="attestation-texte">${introTexte}</div>
       <div class="attestation-nom">${esc(el.nom)} ${esc(el.prenom)}</div>
       <div class="attestation-texte">Élève en classe de <strong>${esc(el.classe)}</strong>,
-        ${esc(mention || "pour son excellent travail")} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
+        ${esc(mentionObj?.texte || "pour son excellent travail")} au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
+      ${blocMoyennes}
+      <div class="attestation-mention">${mentionFinale}</div>
+      <table class="signature-table">
+        <tr>
+          <td><div class="sig-label">Fait le ${today}</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+function buildAvisBaisseResultatsHTML(eleveId, trimestre){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const directeurNom = PARAMS.directeurNom || '';
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const data = computeTrimestre(eleveId, trimestre);
+  const moyActuelle = data.moyenneGenerale;
+  const idxT = PARAMS.trimestres.indexOf(trimestre);
+  const trimestrePrecedent = idxT>0 ? PARAMS.trimestres[idxT-1] : null;
+  const moyPrecedente = trimestrePrecedent ? computeTrimestre(eleveId, trimestrePrecedent).moyenneGenerale : null;
+  const delta = (moyActuelle!==null && moyPrecedente!==null) ? (moyActuelle - moyPrecedente) : null;
+  const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
+  const watermark = LOGO_DATA_URL ? `<img class="attestation-watermark" src="${LOGO_DATA_URL}" alt="">` : '';
+  const introTexte = esc(PARAMS.avertissementBaisseIntro).replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
+  const mentionFinale = esc(PARAMS.avertissementBaisseMentionFinale);
+  const blocMoyennes = `<div class="stat-row" style="justify-content:center;">
+    ${trimestrePrecedent ? statChip('Moyenne — '+trimestrePrecedent, moyPrecedente!==null?moyPrecedente.toFixed(2)+'/20':'—') : ''}
+    ${statChip('Moyenne — '+trimestre, moyActuelle!==null?moyActuelle.toFixed(2)+'/20':'—', true)}
+    ${delta!==null ? statChip('Évolution', delta.toFixed(2)+' pt', true) : ''}
+  </div>`;
+  return `
+    <div class="attestation avertissement">
+      ${watermark}
+      ${printHeader()}
+      <div class="attestation-titre-doc">${esc(schoolName)}</div>
+      <h1>${esc(PARAMS.avertissementBaisseTitre)}</h1>
+      <div class="attestation-souslabel">Année scolaire ${anneeLib} — ${esc(trimestre)}</div>
+      <div class="attestation-ornement">⚠</div>
+      <div class="attestation-texte">${introTexte}</div>
+      <div class="attestation-nom">${esc(el.nom)} ${esc(el.prenom)}</div>
+      <div class="attestation-texte">Élève en classe de <strong>${esc(el.classe)}</strong>, dont les résultats affichent une baisse au cours du ${esc(trimestre)} de l'année scolaire ${anneeLib}.</div>
       ${blocMoyennes}
       <div class="attestation-mention">${mentionFinale}</div>
       <table class="signature-table">
@@ -2669,6 +2859,94 @@ function buildConvocationAbsencesHTML(eleveId, trimestre, dateConv, heureConv, l
   `;
 }
 
+/* ---------- Carte scolaire ---------- */
+const SILHOUETTE_SVG = '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg>';
+
+function buildCarteScolaireHTML(eleveId){
+  const el = ELEVES.find(e=>e.id===eleveId);
+  if(!el) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+  const anneeLib = esc(anneeLibelle(anneeActiveId));
+  const logo = LOGO_DATA_URL ? `<img src="${LOGO_DATA_URL}" alt="">` : '';
+  const photo = el.photo ? `<img src="${el.photo}" alt="">` : SILHOUETTE_SVG;
+  return `
+    <div class="carte-scolaire">
+      <div class="carte-scolaire-header">${logo}<div class="ecole-nom">${schoolName}</div></div>
+      <div class="carte-scolaire-titre">Carte scolaire ${anneeLib}</div>
+      <div class="carte-scolaire-corps">
+        <div class="carte-scolaire-photo">${photo}</div>
+        <div class="carte-scolaire-infos">
+          <div class="nom">${esc(el.nom)} ${esc(el.prenom)}</div>
+          <div><span class="label">Classe</span> ${esc(el.classe)}</div>
+          <div><span class="label">Matricule</span> ${esc(el.matricule)||'—'}</div>
+          <div><span class="label">Sexe</span> ${esc(el.sexe)||'—'}</div>
+        </div>
+      </div>
+      <div class="carte-scolaire-footer"><span>${schoolName}</span><span>Cachet / Signature</span></div>
+    </div>
+  `;
+}
+
+function buildCartesClasseHTML(classeNom){
+  const eleves = ELEVES.filter(e=>e.classe===classeNom && e.statut!=='Inactif').slice().sort((a,b)=>a.nom.localeCompare(b.nom));
+  if(eleves.length===0) return '<p>Aucun élève actif dans cette classe.</p>';
+  return `<div class="cartes-grille">${eleves.map(e=>buildCarteScolaireHTML(e.id)).join('')}</div>`;
+}
+
+/* ---------- Historique multi-années d'un élève ---------- */
+function buildHistoriqueEleveHTML(eleveId){
+  let el0 = ELEVES.find(e=>e.id===eleveId);
+  if(!el0){
+    for(const a of ANNEES){ const found = (ARCHIVES[a.id]?.eleves||[]).find(e=>e.id===eleveId); if(found){ el0 = found; break; } }
+  }
+  if(!el0) return '<p>Élève introuvable.</p>';
+  const schoolName = esc(document.getElementById('school-name').value);
+
+  const lignes = ANNEES.map(annee=>{
+    const estActive = annee.id===anneeActiveId;
+    const source = estActive ? ELEVES : (ARCHIVES[annee.id]?.eleves || []);
+    const el = source.find(e=>e.id===eleveId);
+    if(!el) return null;
+    let moy, rangInfo, decision;
+    if(estActive){
+      moy = moyenneAnnuelle(eleveId);
+      rangInfo = rangDansClasse(eleveId, el.classe, 'ANNEE');
+      decision = DECISIONS[eleveId] || (el.statut==='Inactif' ? (el.motifSortie||'—') : '—');
+    } else {
+      const res = withArchiveContext(annee.id, ()=> ({ moy: moyenneAnnuelle(eleveId), rangInfo: rangDansClasse(eleveId, el.classe, 'ANNEE') }));
+      moy = res.moy; rangInfo = res.rangInfo;
+      decision = (ARCHIVES[annee.id].decisions||{})[eleveId] || (el.motifSortie||'—');
+    }
+    return { annee: annee.libelle, classe: el.classe, moy, rangInfo, decision };
+  }).filter(Boolean);
+
+  const rows = lignes.map(l=>`
+    <tr>
+      <td>${esc(l.annee)}</td>
+      <td>${esc(l.classe)}</td>
+      <td>${l.moy!==null && l.moy!==undefined ? l.moy.toFixed(2)+'/20' : '—'}</td>
+      <td>${l.rangInfo.rang ? l.rangInfo.rang+' / '+l.rangInfo.effectif : '—'}</td>
+      <td>${esc(l.decision)}</td>
+    </tr>
+  `).join('');
+
+  const moyennesValides = lignes.map(l=>l.moy).filter(v=>v!==null && v!==undefined);
+  const tendance = moyennesValides.length>=2 ?
+    (moyennesValides[moyennesValides.length-1] - moyennesValides[0]) : null;
+
+  return `
+    <div class="bulletin" style="max-width:760px;">
+      ${printHeader()}
+      <h3>Historique scolaire — ${esc(el0.nom)} ${esc(el0.prenom)}${el0.matricule?' (matricule '+esc(el0.matricule)+')':''}</h3>
+      <table class="receipt-table">
+        <thead><tr><th>Année scolaire</th><th>Classe</th><th>Moyenne annuelle</th><th>Rang</th><th>Décision</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5">Aucun historique disponible pour cet élève.</td></tr>'}</tbody>
+      </table>
+      ${tendance!==null ? `<p class="bulletin-eleve-line" style="margin-top:10px;">Évolution entre la première et la dernière année suivie : <strong style="color:${tendance>=0?'var(--green)':'var(--red)'};">${tendance>=0?'+':''}${tendance.toFixed(2)} point(s)</strong>.</p>` : ''}
+    </div>
+  `;
+}
+
 function renderPersonnelCategoriePanel(fonction, liste){
   const estEnseignantCat = fonction==='Enseignant';
   return `
@@ -2697,7 +2975,7 @@ function renderPersonnelCategoriePanel(fonction, liste){
             return `<tr><td>${esc(p.nom)}</td><td>${esc(p.prenom)}</td>
               <td><input class="inline-num" style="width:130px;" data-action="edit-matricule-personnel" data-id="${p.id}" value="${esc(p.matricule)||''}" placeholder="—"></td>
               ${colsSpecifiques}<td>${esc(p.contact)||'—'}</td>
-              <td><span class="badge ${cls}">${esc(p.statut)}</span></td>
+              <td><span class="badge ${cls}">${esc(p.statut)}</span>${estEnCongeAujourdhui(p.id) && p.statut!=='Congé' ? ' <span class="badge conge">En congé</span>' : ''}</td>
               <td><button class="btn danger small" data-action="del-personnel" data-id="${p.id}">Supprimer</button></td></tr>`;
           }).join('')}
         </tbody>
@@ -3491,10 +3769,12 @@ function renderListEditor(title, key, desc){
 // Éditeur dédié aux mentions de félicitations : chaque mention porte un texte ET un type d'affichage
 // (quelle(s) moyenne(s) imprimer sur l'attestation générée avec cette mention).
 function renderMentionsFelicitationsEditor(){
-  const items = PARAMS.mentionsFelicitations;
+  const items = PARAMS.mentionsFelicitations.slice().sort((a,b)=>(Number(b.seuilMoyenne)||0)-(Number(a.seuilMoyenne)||0));
   const rows = items.map(m=>`
     <tr data-mention-id="${m.id}">
-      <td>${esc(m.texte)}</td>
+      <td><input class="inline-num" style="width:130px;" data-field="label" data-mention-id="${m.id}" value="${esc(m.label||'')}"></td>
+      <td><input class="inline-num" style="width:260px;" data-field="texte" data-mention-id="${m.id}" value="${esc(m.texte||'')}"></td>
+      <td><input class="inline-num" type="number" min="0" max="20" step="0.25" style="width:70px;" data-field="seuilMoyenne" data-mention-id="${m.id}" value="${Number(m.seuilMoyenne)||0}"></td>
       <td>
         <select class="select-mention-affichage" data-mention-id="${m.id}">
           <option value="moyenne" ${m.affichage==='moyenne'?'selected':''}>Moyenne du trimestre</option>
@@ -3507,15 +3787,17 @@ function renderMentionsFelicitationsEditor(){
   `).join('');
   return `
   <div class="panel">
-    <div class="panel-head"><h3>Mentions — attestation de félicitations</h3><p class="desc" style="width:100%;">Chaque mention définit aussi ce qui s'affiche sur l'attestation : la moyenne du trimestre, ou une comparaison avec le trimestre précédent pour illustrer une progression.</p></div>
+    <div class="panel-head"><h3>Mentions — attestations (tableau d'honneur, félicitations, encouragements...)</h3><p class="desc" style="width:100%;">Chaque mention est associée à une moyenne minimale : lors de la génération, l'application suggère automatiquement la mention adaptée à la moyenne réelle de l'élève (vous pouvez toujours changer manuellement). Le type « Progression » compare le trimestre précédent au trimestre actuel ; si l'évolution est négative, un avis de suivi est imprimé à la place de l'attestation. Le rang de classe n'est jamais affiché sur ces documents, seule la moyenne l'est.</p></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Mention</th><th>Affichage sur l'attestation</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="3">Aucune mention.</td></tr>'}</tbody>
+        <thead><tr><th>Libellé (titre imprimé)</th><th>Phrase (« ...pour ... »)</th><th>Moyenne minimale</th><th>Affichage</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5">Aucune mention.</td></tr>'}</tbody>
       </table>
     </div>
     <form id="form-ajout-mention" class="form-grid" style="margin-top:14px;">
-      <div class="field"><label>Nouvelle mention</label><input name="texte" required placeholder="ex: pour sa participation exemplaire"></div>
+      <div class="field"><label>Libellé</label><input name="label" required placeholder="ex: Tableau d'honneur"></div>
+      <div class="field"><label>Phrase</label><input name="texte" required placeholder="ex: pour ses bons résultats et son sérieux"></div>
+      <div class="field"><label>Moyenne minimale</label><input name="seuilMoyenne" type="number" min="0" max="20" step="0.25" value="12"></div>
       <div class="field"><label>Affichage</label>
         <select name="affichage">
           <option value="moyenne">Moyenne du trimestre</option>
@@ -4030,9 +4312,27 @@ function attachHandlers(){
     });
     document.getElementById('content').addEventListener('change', async (e)=>{
       const input = e.target.closest('[data-action="edit-frais"]');
-      if(!input) return;
-      const el = ELEVES.find(x=>x.id===input.dataset.id);
-      if(el){ el.fraisAnnuel = Number(input.value)||0; await saveEleves(); showToast('Frais annuel mis à jour'); }
+      if(input){
+        const el = ELEVES.find(x=>x.id===input.dataset.id);
+        if(el){ el.fraisAnnuel = Number(input.value)||0; await saveEleves(); showToast('Frais annuel mis à jour'); }
+        return;
+      }
+      const photoInput = e.target.closest('.input-photo-eleve');
+      if(photoInput){
+        const file = photoInput.files[0];
+        if(!file) return;
+        if(file.size > 300*1024){
+          showToast("Photo trop lourde (max ~300 Ko). Choisissez une image plus légère.");
+          photoInput.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = async (ev)=>{
+          const el = ELEVES.find(x=>x.id===photoInput.dataset.id);
+          if(el){ el.photo = ev.target.result; await saveEleves(); showToast('Photo enregistrée'); render(); }
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -4392,12 +4692,53 @@ function attachHandlers(){
     document.querySelectorAll('[data-action="print-personnel-categorie"]').forEach(btn=>{
       btn.addEventListener('click', ()=> openPrint(buildPersonnelCategorieListHTML(btn.dataset.fonction)));
     });
+    document.getElementById('form-conge-personnel')?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const personnelId = f.get('personnelId');
+      const dateDebut = f.get('dateDebut');
+      const dateFin = f.get('dateFin');
+      if(!personnelId){ showToast("Ajoutez d'abord un membre du personnel."); return; }
+      if(dateFin < dateDebut){ showToast('La date de fin doit être après la date de début.'); return; }
+      PERSONNEL_ABSENCES.push({ id: uid(), personnelId, type: f.get('type'), dateDebut, dateFin, motif: (f.get('motif')||'').trim() });
+      await savePersonnelAbsences();
+      showToast('Congé/absence enregistré');
+      render();
+    });
+    document.querySelectorAll('[data-action="del-conge-personnel"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirmerAvecCode('Supprimer cet enregistrement de congé/absence ?')) return;
+        PERSONNEL_ABSENCES = PERSONNEL_ABSENCES.filter(x=>x.id!==btn.dataset.id);
+        await savePersonnelAbsences(); showToast('Enregistrement supprimé'); render();
+      });
+    });
   }
 
   if(currentTab==='documents'){
     document.querySelectorAll('[data-doctype]').forEach(btn=>{
       btn.addEventListener('click', ()=>{ docTypeTab = btn.dataset.doctype; render(); });
     });
+    document.getElementById('doc-classe-filter')?.addEventListener('change', (e)=>{
+      docClasseFilter = e.target.value; render();
+    });
+    if(docTypeTab==='felicitations'){
+      const updateSuggestion = ()=>{
+        const id = document.getElementById('doc-eleve-select')?.value;
+        const trimestre = document.getElementById('doc-trimestre-select')?.value;
+        const hint = document.getElementById('doc-mention-hint');
+        const sel = document.getElementById('doc-mention-select');
+        if(!id || !trimestre || !hint) return;
+        const moy = computeTrimestre(id, trimestre).moyenneGenerale;
+        const suggestion = mentionSuggereePour(id, trimestre);
+        if(suggestion && sel) sel.value = suggestion.id;
+        hint.textContent = moy!==null
+          ? `Moyenne actuelle : ${moy.toFixed(2)}/20${suggestion ? ' — mention suggérée : '+suggestion.label : ' — aucune mention configurée ne correspond à cette moyenne'}`
+          : '';
+      };
+      document.getElementById('doc-eleve-select')?.addEventListener('change', updateSuggestion);
+      document.getElementById('doc-trimestre-select')?.addEventListener('change', updateSuggestion);
+      updateSuggestion();
+    }
     document.getElementById('btn-generer-doc')?.addEventListener('click', ()=>{
       let html = '';
       if(docTypeTab==='scolarite'){
@@ -4414,7 +4755,16 @@ function attachHandlers(){
         const mentionId = document.getElementById('doc-mention-select')?.value;
         const mentionObj = PARAMS.mentionsFelicitations.find(m=>m.id===mentionId);
         if(!id) return;
-        html = buildAttestationFelicitationsHTML(id, trimestre, mentionObj?.texte, mentionObj?.affichage||'moyenne');
+        if(mentionObj?.affichage==='progression'){
+          const idxT = PARAMS.trimestres.indexOf(trimestre);
+          const trimestrePrecedent = idxT>0 ? PARAMS.trimestres[idxT-1] : null;
+          const moyPrec = trimestrePrecedent ? computeTrimestre(id, trimestrePrecedent).moyenneGenerale : null;
+          const moyAct = computeTrimestre(id, trimestre).moyenneGenerale;
+          const delta = (moyAct!==null && moyPrec!==null) ? (moyAct - moyPrec) : null;
+          html = (delta!==null && delta<0) ? buildAvisBaisseResultatsHTML(id, trimestre) : buildAttestationFelicitationsHTML(id, trimestre, mentionObj);
+        } else {
+          html = buildAttestationFelicitationsHTML(id, trimestre, mentionObj);
+        }
       } else if(docTypeTab==='reconnaissance'){
         const id = document.getElementById('doc-personnel-select')?.value;
         const motif = document.getElementById('doc-motif-select')?.value;
@@ -4435,13 +4785,34 @@ function attachHandlers(){
         const lieuConv = document.getElementById('doc-conv-lieu')?.value;
         if(!id) return;
         html = buildConvocationAbsencesHTML(id, trimestre, dateConv, heureConv, lieuConv);
+      } else if(docTypeTab==='carte'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        if(!id) return;
+        html = buildCarteScolaireHTML(id);
+      } else if(docTypeTab==='historique'){
+        const id = document.getElementById('doc-eleve-select')?.value;
+        if(!id) return;
+        html = buildHistoriqueEleveHTML(id);
       }
       document.getElementById('doc-preview').innerHTML = `
-        <div style="border:1px solid var(--line);border-radius:8px;padding:20px;background:#fdfdfc;">${html}</div>
+        <div style="border:1px solid var(--line);border-radius:8px;padding:20px;background:#fdfdfc;display:flex;justify-content:center;">${html}</div>
         <button class="btn gold" id="btn-print-doc" style="margin-top:14px;">Imprimer ce document</button>
       `;
       document.getElementById('btn-print-doc').addEventListener('click', ()=>{
-        const node = document.querySelector('#doc-preview .certificat, #doc-preview .attestation');
+        const node = document.querySelector('#doc-preview .certificat, #doc-preview .attestation, #doc-preview .bulletin, #doc-preview .carte-scolaire, #doc-preview .cartes-grille');
+        if(node) openPrint(node.outerHTML);
+      });
+    });
+    document.getElementById('btn-generer-cartes-classe')?.addEventListener('click', ()=>{
+      const classe = document.getElementById('doc-carte-classe-select')?.value;
+      if(!classe) return;
+      const html = buildCartesClasseHTML(classe);
+      document.getElementById('doc-preview').innerHTML = `
+        <div style="border:1px solid var(--line);border-radius:8px;padding:20px;background:#fdfdfc;">${html}</div>
+        <button class="btn gold" id="btn-print-doc" style="margin-top:14px;">Imprimer ces cartes</button>
+      `;
+      document.getElementById('btn-print-doc').addEventListener('click', ()=>{
+        const node = document.querySelector('#doc-preview .cartes-grille');
         if(node) openPrint(node.outerHTML);
       });
     });
@@ -4868,8 +5239,9 @@ function attachHandlers(){
       e.preventDefault();
       const f = new FormData(e.target);
       const texte = (f.get('texte')||'').trim();
-      if(!texte) return;
-      PARAMS.mentionsFelicitations.push({ id: uid(), texte, affichage: f.get('affichage')||'moyenne' });
+      const label = (f.get('label')||'').trim();
+      if(!texte || !label) return;
+      PARAMS.mentionsFelicitations.push({ id: uid(), label, texte, affichage: f.get('affichage')||'moyenne', seuilMoyenne: Number(f.get('seuilMoyenne'))||0 });
       await saveParams(); render();
     });
     document.querySelectorAll('[data-action="del-mention-felicitation"]').forEach(btn=>{
@@ -4882,6 +5254,15 @@ function attachHandlers(){
       sel.addEventListener('change', async ()=>{
         const m = PARAMS.mentionsFelicitations.find(m=>m.id===sel.dataset.mentionId);
         if(m){ m.affichage = sel.value; await saveParams(); }
+      });
+    });
+    document.querySelectorAll('[data-field][data-mention-id]').forEach(inp=>{
+      inp.addEventListener('change', async ()=>{
+        const m = PARAMS.mentionsFelicitations.find(m=>m.id===inp.dataset.mentionId);
+        if(!m) return;
+        const field = inp.dataset.field;
+        m[field] = field==='seuilMoyenne' ? (Number(inp.value)||0) : inp.value.trim();
+        await saveParams();
       });
     });
 
