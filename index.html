@@ -383,6 +383,7 @@
   .carte-scolaire-infos .nom{font-size:8.6px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;margin-bottom:0.8mm;word-break:break-word;}
   .carte-scolaire-infos .label{color:var(--gold-soft);font-size:5.4px;text-transform:uppercase;letter-spacing:.05em;}
   .carte-scolaire-footer{display:flex;justify-content:space-between;align-items:flex-end;padding:1mm 3.5mm 2.5mm 3.5mm;font-size:5.2px;color:rgba(255,255,255,.72);position:relative;z-index:1;}
+  .carte-scolaire-cachet{max-width:16mm;max-height:9mm;object-fit:contain;background:rgba(255,255,255,.9);border-radius:1mm;padding:0.5mm;}
   .carte-scolaire.verso .carte-scolaire-corps{gap:3.5mm;}
   .carte-scolaire-qr{background:#fff;border-radius:1.2mm;padding:1.4mm;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   .carte-scolaire-qr svg{display:block;}
@@ -563,7 +564,20 @@ const DEFAULT_PARAMS = {
   },
   directeurNom: '',
   directeurTelephone: '',
+  directeurTitre: 'Directeur', // ex: "Directeur", "Proviseur", "Directrice", "Proviseure"...
   lieuCarteScolaire: '', // lieu de délivrance affiché au verso de la carte scolaire (ex: "Ouagadougou")
+  carte: {
+    titre: 'Carte scolaire',
+    labelNe: "Né(e) le",
+    labelSexe: 'Sexe',
+    labelProfession: 'Profession',
+    labelClasse: 'Classe',
+    labelMatricule: 'Matricule',
+    labelFaitA: 'Fait à',
+    labelPersonnePrevenir: 'Personne à prévenir',
+    labelSignature: 'Signature',
+    texteFooterVerso: "Cette carte est la propriété de l'établissement — en cas de perte, prévenir la direction"
+  },
   regime: 'prive', // 'prive' | 'public'
   seuilPassage: 10,
   seuilExclusion: 7,
@@ -660,6 +674,8 @@ let anneeAffichee = null;   // année sélectionnée dans le menu déroulant (pe
 let ARCHIVES = {};          // { [anneeId]: { libelle, eleves, notes, decisions, finances, clotureLe } } — snapshot au moment de la bascule
 
 let LOGO_DATA_URL = '';     // logo de l'établissement (data URL base64), affiché sur tous les documents imprimés
+let CACHET_SIGNATURE_DATA_URL = ''; // cachet/signature du directeur ou proviseur (data URL), affiché sur la carte scolaire
+let QR_PERSONNALISE_DATA_URL = '';  // QR code personnalisé de l'établissement (data URL), remplace le QR généré si présent
 
 const fmt = n => (Number(n)||0).toLocaleString('fr-FR') + ' FCFA';
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -767,6 +783,8 @@ async function loadAll(){
   const savedName = storageGet('school-name');
   if(savedName) document.getElementById('school-name').value = savedName;
   LOGO_DATA_URL = storageGet('logo-data') || '';
+  CACHET_SIGNATURE_DATA_URL = storageGet('cachet-signature-data') || '';
+  QR_PERSONNALISE_DATA_URL = storageGet('qr-personnalise-data') || '';
   updateCrestDisplay();
 
   // Migration douce : garantir les champs nécessaires
@@ -783,6 +801,8 @@ async function loadAll(){
   if(PARAMS.directeurNom===undefined) PARAMS.directeurNom = '';
   if(PARAMS.directeurTelephone===undefined) PARAMS.directeurTelephone = '';
   if(PARAMS.lieuCarteScolaire===undefined) PARAMS.lieuCarteScolaire = '';
+  if(PARAMS.directeurTitre===undefined) PARAMS.directeurTitre = 'Directeur';
+  PARAMS.carte = Object.assign({}, DEFAULT_PARAMS.carte, PARAMS.carte||{});
   if(PARAMS.regime===undefined) PARAMS.regime = 'prive';
   if(PARAMS.seuilPassage===undefined) PARAMS.seuilPassage = 10;
   if(PARAMS.seuilExclusion===undefined) PARAMS.seuilExclusion = 7;
@@ -899,6 +919,8 @@ const saveAnnees = () => save('annees-data', ANNEES);
 const saveAnneeActive = () => save('annee-active-data', anneeActiveId);
 const saveArchives = () => save('archives-data', ARCHIVES);
 const saveLogo = () => save('logo-data', LOGO_DATA_URL);
+const saveCachetSignature = () => save('cachet-signature-data', CACHET_SIGNATURE_DATA_URL);
+const saveQrPersonnalise = () => save('qr-personnalise-data', QR_PERSONNALISE_DATA_URL);
 
 function updateCrestDisplay(){
   const el = document.getElementById('sidebar-crest');
@@ -990,6 +1012,8 @@ function exportBackup(){
     date: new Date().toISOString(),
     schoolName: document.getElementById('school-name').value,
     logo: LOGO_DATA_URL,
+    cachetSignature: CACHET_SIGNATURE_DATA_URL,
+    qrPersonnalise: QR_PERSONNALISE_DATA_URL,
     eleves: ELEVES, notes: NOTES, examensBlancs: EXAMENS_BLANCS, notesBlanc: NOTES_BLANC, decisionsBlanc: DECISIONS_BLANC, absences: ABSENCES, discipline: DISCIPLINE, emploi: EMPLOI, finances: FINANCES, personnel: PERSONNEL, personnelAbsences: PERSONNEL_ABSENCES, parametres: PARAMS,
     decisions: DECISIONS, profPrincipal: PROF_PRINCIPAL, paie: PAIE,
     annees: ANNEES, archives: ARCHIVES, anneeActiveId, utilisateurs: UTILISATEURS,
@@ -1027,13 +1051,15 @@ function importBackup(file){
       PROF_PRINCIPAL = data.profPrincipal || {};
       PAIE = data.paie || [];
       LOGO_DATA_URL = data.logo || '';
+      CACHET_SIGNATURE_DATA_URL = data.cachetSignature || '';
+      QR_PERSONNALISE_DATA_URL = data.qrPersonnalise || '';
       ANNEES = data.annees || ANNEES;
       ARCHIVES = data.archives || ARCHIVES;
       anneeActiveId = data.anneeActiveId || anneeActiveId;
       anneeAffichee = anneeActiveId;
       UTILISATEURS = data.utilisateurs || [];
       if(data.schoolName) document.getElementById('school-name').value = data.schoolName;
-      await Promise.all([saveEleves(), saveNotes(), saveExamensBlancs(), saveNotesBlanc(), saveDecisionsBlanc(), saveAbsences(), saveDiscipline(), saveEmploi(), saveFinances(), savePersonnel(), savePersonnelAbsences(), saveParams(), saveDecisions(), saveProfPrincipal(), savePaie(), saveLogo(), saveAnnees(), saveArchives(), saveUtilisateurs(), save('school-name', data.schoolName||'')]);
+      await Promise.all([saveEleves(), saveNotes(), saveExamensBlancs(), saveNotesBlanc(), saveDecisionsBlanc(), saveAbsences(), saveDiscipline(), saveEmploi(), saveFinances(), savePersonnel(), savePersonnelAbsences(), saveParams(), saveDecisions(), saveProfPrincipal(), savePaie(), saveLogo(), saveCachetSignature(), saveQrPersonnalise(), saveAnnees(), saveArchives(), saveUtilisateurs(), save('school-name', data.schoolName||'')]);
       updateCrestDisplay();
       updateAnneeSelect();
       storageSet('derniere-sauvegarde-le', new Date().toISOString());
@@ -1554,7 +1580,7 @@ function buildArchiveBilanHTML(anneeId){
       <p class="bulletin-eleve-line">${(archive.examensBlancs||[]).length} session(s) : ${(archive.examensBlancs||[]).map(eb=>esc(eb.libelle)).join(', ') || '—'}</p>
 
       <table class="signature-table">
-        <tr><td><div class="sig-label">Le Directeur${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line">Signature / Cachet</div></td></tr>
+        <tr><td><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -2604,7 +2630,7 @@ function buildCertificatScolariteHTML(eleveId){
     ` né(e) le <strong>${naissanceDate || '________________'}</strong> à <strong>${el.lieuNaissance?esc(el.lieuNaissance):'________________'}</strong>,` : '';
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
   const introTexte = esc(PARAMS.certifSoussigneIntro)
-    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le Directeur / la Directrice')
+    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le '+esc(PARAMS.directeurTitre||'Directeur').toLowerCase())
     .replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
   const corpsTexte = esc(PARAMS.certifScolariteTexte)
     .replace(/\{classe\}/g, `<strong>${esc(el.classe)}</strong>`)
@@ -2623,7 +2649,7 @@ function buildCertificatScolariteHTML(eleveId){
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
-        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -2640,7 +2666,7 @@ function buildCertificatNonRedevanceHTML(eleveId){
   const estSolde = solde<=0;
   const today = formatDateFrLongue(new Date().toISOString().slice(0,10));
   const introTexte = esc(PARAMS.certifSoussigneIntro)
-    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le Directeur / la Directrice')
+    .replace(/\{directeur\}/g, directeurNom?esc(directeurNom):'le '+esc(PARAMS.directeurTitre||'Directeur').toLowerCase())
     .replace(/\{etablissement\}/g, `<strong>${schoolName}</strong>`);
   const statutTexte = estSolde
     ? esc(PARAMS.certifNonRedevanceOk)
@@ -2659,7 +2685,7 @@ function buildCertificatNonRedevanceHTML(eleveId){
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
-        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -2721,7 +2747,7 @@ function buildAttestationFelicitationsHTML(eleveId, trimestre, mentionObj){
       <table class="signature-table">
         <tr>
           <td><div class="sig-label">Fait le ${today}</div></td>
-          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
         </tr>
       </table>
     </div>
@@ -2765,7 +2791,7 @@ function buildAvisBaisseResultatsHTML(eleveId, trimestre){
       <table class="signature-table">
         <tr>
           <td><div class="sig-label">Fait le ${today}</div></td>
-          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
         </tr>
       </table>
     </div>
@@ -2798,7 +2824,7 @@ function buildAttestationReconnaissanceHTML(personnelId, motif){
       <table class="signature-table">
         <tr>
           <td><div class="sig-label">Fait le ${today}</div></td>
-          <td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
+          <td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td>
         </tr>
       </table>
     </div>
@@ -2837,7 +2863,7 @@ function buildConvocationPaiementHTML(eleveId, dateConv, heureConv, lieuConv){
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
-        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -2874,7 +2900,7 @@ function buildConvocationAbsencesHTML(eleveId, trimestre, dateConv, heureConv, l
       </div>
       <p class="certificat-ref">Fait le ${today}</p>
       <table class="signature-table">
-        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+        <tr><td></td><td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -3174,52 +3200,66 @@ function buildCarteScolaireHTML(eleveId){
   const anneeLib = esc(anneeLibelle(anneeActiveId));
   const logo = LOGO_DATA_URL ? `<img src="${LOGO_DATA_URL}" alt="">` : '';
   const photo = el.photo ? `<img src="${el.photo}" alt="">` : SILHOUETTE_SVG;
+  const cl = PARAMS.carte; // libellés personnalisables de la carte
+  const titreResponsable = esc(PARAMS.directeurTitre)||'Directeur';
   const directeurNom = esc(PARAMS.directeurNom)||'—';
   const directeurTel = esc(PARAMS.directeurTelephone)||'—';
   const lieuCarte = esc(PARAMS.lieuCarteScolaire)||'—';
   const armoiries = armoiriesBurkinaSVG(0.14);
   const drapeau = drapeauBurkinaSVG(0.22);
+  // Cachet/signature : si une image a été fournie dans Paramètres, elle remplace
+  // le simple libellé "Signature".
+  const signatureBloc = CACHET_SIGNATURE_DATA_URL
+    ? `<img src="${CACHET_SIGNATURE_DATA_URL}" alt="Cachet et signature" class="carte-scolaire-cachet">`
+    : `<span>${esc(cl.labelSignature)}</span>`;
 
   // Contenu du QR code (comme une CNIB) : identité essentielle, en clair et concis.
   // Volontairement réduit à l'essentiel (nom, matricule, classe) : le reste
   // (établissement, année, naissance) figure déjà en clair sur la carte, et un
   // contenu trop long ferait tronquer le QR pour les noms/établissements longs.
-  const qrTexte = [
-    `MAT:${el.matricule||'-'}`,
-    `${el.nom} ${el.prenom}`,
-    `CLASSE:${el.classe}`
-  ].join(' | ');
-  const qrSvg = qrToSVG(qrTexte, 96);
+  // Si l'établissement a fourni son propre QR code (dans Paramètres), on l'utilise
+  // à la place du QR généré automatiquement.
+  let qrHtml;
+  if(QR_PERSONNALISE_DATA_URL){
+    qrHtml = `<img src="${QR_PERSONNALISE_DATA_URL}" alt="QR code" style="width:96px;height:96px;object-fit:contain;">`;
+  } else {
+    const qrTexte = [
+      `MAT:${el.matricule||'-'}`,
+      `${el.nom} ${el.prenom}`,
+      `CLASSE:${el.classe}`
+    ].join(' | ');
+    qrHtml = qrToSVG(qrTexte, 96);
+  }
 
   const recto = `
     <div class="carte-scolaire recto">
       <div class="carte-scolaire-watermark">${armoiries}</div>
       <div class="carte-scolaire-header">${logo}<div class="ecole-nom">${schoolName}</div></div>
-      <div class="carte-scolaire-titre">Carte scolaire ${anneeLib}</div>
+      <div class="carte-scolaire-titre">${esc(cl.titre)} ${anneeLib}</div>
       <div class="carte-scolaire-corps">
         <div class="carte-scolaire-photo">${photo}</div>
         <div class="carte-scolaire-infos">
           <div class="nom">${esc(el.nom)} ${esc(el.prenom)}</div>
-          <div><span class="label">Né(e) le</span> ${formatDateFrCourt(el.dateNaissance)||'—'} à ${esc(el.lieuNaissance)||'—'}</div>
-          <div><span class="label">Sexe</span> ${esc(el.sexe)||'—'}</div>
-          <div><span class="label">Profession</span> ${esc(el.profession)||'Élève'}</div>
-          <div><span class="label">Classe</span> ${esc(el.classe)} &nbsp; <span class="label">Matricule</span> ${esc(el.matricule)||'—'}</div>
+          <div><span class="label">${esc(cl.labelNe)}</span> ${formatDateFrCourt(el.dateNaissance)||'—'} à ${esc(el.lieuNaissance)||'—'}</div>
+          <div><span class="label">${esc(cl.labelSexe)}</span> ${esc(el.sexe)||'—'}</div>
+          <div><span class="label">${esc(cl.labelProfession)}</span> ${esc(el.profession)||'Élève'}</div>
+          <div><span class="label">${esc(cl.labelClasse)}</span> ${esc(el.classe)} &nbsp; <span class="label">${esc(cl.labelMatricule)}</span> ${esc(el.matricule)||'—'}</div>
         </div>
       </div>
-      <div class="carte-scolaire-footer"><span>Directeur : ${directeurNom}${PARAMS.directeurTelephone?' — '+directeurTel:''}</span><span>Signature</span></div>
+      <div class="carte-scolaire-footer"><span>${titreResponsable} : ${directeurNom}${PARAMS.directeurTelephone?' — '+directeurTel:''}</span>${signatureBloc}</div>
     </div>`;
 
   const verso = `
     <div class="carte-scolaire verso">
       <div class="carte-scolaire-watermark">${drapeau}</div>
       <div class="carte-scolaire-corps">
-        <div class="carte-scolaire-qr">${qrSvg}</div>
+        <div class="carte-scolaire-qr">${qrHtml}</div>
         <div class="carte-scolaire-verso-infos">
-          <div class="ligne"><span class="label">Fait à</span>${lieuCarte}</div>
-          <div class="ligne"><span class="label">Personne à prévenir</span>${esc(el.contactUrgenceNom)||'—'}${el.contactUrgenceTelephone?' — '+esc(el.contactUrgenceTelephone):''}</div>
+          <div class="ligne"><span class="label">${esc(cl.labelFaitA)}</span>${lieuCarte}</div>
+          <div class="ligne"><span class="label">${esc(cl.labelPersonnePrevenir)}</span>${esc(el.contactUrgenceNom)||'—'}${el.contactUrgenceTelephone?' — '+esc(el.contactUrgenceTelephone):''}</div>
         </div>
       </div>
-      <div class="carte-scolaire-verso-footer">Cette carte est la propriété de l'établissement — en cas de perte, prévenir la direction</div>
+      <div class="carte-scolaire-verso-footer">${esc(cl.texteFooterVerso)}</div>
     </div>`;
 
   return `<div class="carte-scolaire-paire">${recto}${verso}</div>`;
@@ -3891,16 +3931,59 @@ function renderParametres(){
   </div>
 
   <div class="panel">
-    <div class="panel-head"><h3>Bulletins — pondération et signature</h3><p class="desc" style="width:100%;">Pondération utilisée pour calculer la moyenne de chaque matière, et nom du Directeur affiché sur tous les bulletins imprimés.</p></div>
+    <div class="panel-head"><h3>Bulletins — pondération et signature</h3><p class="desc" style="width:100%;">Pondération utilisée pour calculer la moyenne de chaque matière, et nom/titre du responsable affiché sur tous les documents imprimés (bulletins, certificats, carte scolaire...).</p></div>
     <form id="form-ponderation" class="form-grid">
       <div class="field"><label>Moyenne des devoirs (%)</label><input name="ponderationDevoirs" type="number" min="0" max="100" value="${PARAMS.ponderationDevoirs}" required></div>
       <div class="field"><label>Composition (%)</label><input name="ponderationComposition" type="number" min="0" max="100" value="${PARAMS.ponderationComposition}" required></div>
-      <div class="field"><label>Nom du Directeur</label><input name="directeurNom" value="${esc(PARAMS.directeurNom)}" placeholder="ex: M. Ouédraogo Jean"></div>
-      <div class="field"><label>Numéro du Directeur</label><input name="directeurTelephone" value="${esc(PARAMS.directeurTelephone)}" placeholder="+226 ..."></div>
-      <div class="field"><label>Lieu de délivrance de la carte scolaire</label><input name="lieuCarteScolaire" value="${esc(PARAMS.lieuCarteScolaire)}" placeholder="ex: Ouagadougou"></div>
+      <div class="field"><label>Titre du responsable</label><input name="directeurTitre" value="${esc(PARAMS.directeurTitre)}" placeholder="ex: Directeur, Proviseur, Directrice..."></div>
+      <div class="field"><label>Nom du responsable</label><input name="directeurNom" value="${esc(PARAMS.directeurNom)}" placeholder="ex: M. Ouédraogo Jean"></div>
+      <div class="field"><label>Numéro du responsable</label><input name="directeurTelephone" value="${esc(PARAMS.directeurTelephone)}" placeholder="+226 ..."></div>
       <button class="btn gold" type="submit">Enregistrer</button>
     </form>
-    <p class="muted" style="margin-top:8px;">Les deux pourcentages doivent totaliser 100 (actuellement : ${Number(PARAMS.ponderationDevoirs)+Number(PARAMS.ponderationComposition)}).</p>
+    <p class="muted" style="margin-top:8px;">Les deux pourcentages doivent totaliser 100 (actuellement : ${Number(PARAMS.ponderationDevoirs)+Number(PARAMS.ponderationComposition)}). Le titre (« Directeur », « Proviseur »...) remplace automatiquement le mot « Directeur » partout où il apparaît sur les documents imprimés.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Carte scolaire — textes, cachet et QR code</h3><p class="desc" style="width:100%;">Tous les textes affichés sur la carte scolaire (recto et verso) sont modifiables ici. Vous pouvez aussi ajouter le cachet/la signature scannée du responsable, et remplacer le QR code généré automatiquement par le QR code officiel de l'établissement si vous en avez un.</p></div>
+    <form id="form-carte-textes" class="form-grid">
+      <div class="field"><label>Titre de la carte</label><input name="titre" value="${esc(PARAMS.carte.titre)}"></div>
+      <div class="field"><label>Lieu de délivrance</label><input name="lieuCarteScolaire" value="${esc(PARAMS.lieuCarteScolaire)}" placeholder="ex: Ouagadougou"></div>
+      <div class="field"><label>Libellé « Né(e) le »</label><input name="labelNe" value="${esc(PARAMS.carte.labelNe)}"></div>
+      <div class="field"><label>Libellé « Sexe »</label><input name="labelSexe" value="${esc(PARAMS.carte.labelSexe)}"></div>
+      <div class="field"><label>Libellé « Profession »</label><input name="labelProfession" value="${esc(PARAMS.carte.labelProfession)}"></div>
+      <div class="field"><label>Libellé « Classe »</label><input name="labelClasse" value="${esc(PARAMS.carte.labelClasse)}"></div>
+      <div class="field"><label>Libellé « Matricule »</label><input name="labelMatricule" value="${esc(PARAMS.carte.labelMatricule)}"></div>
+      <div class="field"><label>Libellé « Fait à »</label><input name="labelFaitA" value="${esc(PARAMS.carte.labelFaitA)}"></div>
+      <div class="field"><label>Libellé « Personne à prévenir »</label><input name="labelPersonnePrevenir" value="${esc(PARAMS.carte.labelPersonnePrevenir)}"></div>
+      <div class="field"><label>Libellé « Signature » (si pas de cachet importé)</label><input name="labelSignature" value="${esc(PARAMS.carte.labelSignature)}"></div>
+      <div class="field" style="grid-column:1/-1;"><label>Mention en bas du verso</label><input name="texteFooterVerso" value="${esc(PARAMS.carte.texteFooterVerso)}"></div>
+      <button class="btn gold" type="submit">Enregistrer les textes</button>
+    </form>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);">
+      <div style="min-width:220px;">
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Cachet / signature du responsable</label>
+        <div style="width:120px;height:70px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;margin-bottom:8px;">
+          ${CACHET_SIGNATURE_DATA_URL ? `<img src="${CACHET_SIGNATURE_DATA_URL}" alt="Cachet" style="width:100%;height:100%;object-fit:contain;">` : '<span class="muted" style="font-size:11px;text-align:center;">Aucun cachet</span>'}
+        </div>
+        <label class="btn secondary" style="cursor:pointer;">Choisir une image
+          <input type="file" id="input-cachet-signature" accept="image/png,image/jpeg,image/webp" style="display:none;">
+        </label>
+        ${CACHET_SIGNATURE_DATA_URL ? '<button class="btn danger" type="button" id="btn-retirer-cachet" style="margin-left:8px;">Retirer</button>' : ''}
+        <p class="muted" style="margin-top:6px;max-width:220px;">Photo ou scan du cachet/signature, fond de préférence blanc ou transparent. S'affiche à la place du mot « Signature » sur le recto.</p>
+      </div>
+      <div style="min-width:220px;">
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">QR code personnalisé de l'établissement</label>
+        <div style="width:70px;height:70px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;margin-bottom:8px;">
+          ${QR_PERSONNALISE_DATA_URL ? `<img src="${QR_PERSONNALISE_DATA_URL}" alt="QR" style="width:100%;height:100%;object-fit:contain;">` : '<span class="muted" style="font-size:11px;text-align:center;">QR auto</span>'}
+        </div>
+        <label class="btn secondary" style="cursor:pointer;">Choisir une image
+          <input type="file" id="input-qr-personnalise" accept="image/png,image/jpeg,image/webp" style="display:none;">
+        </label>
+        ${QR_PERSONNALISE_DATA_URL ? '<button class="btn danger" type="button" id="btn-retirer-qr" style="margin-left:8px;">Retirer</button>' : ''}
+        <p class="muted" style="margin-top:6px;max-width:220px;">Si vous avez déjà un QR code officiel (image), il remplacera celui généré automatiquement sur toutes les cartes. Sans image ici, le logiciel continue de générer un QR par élève automatiquement.</p>
+      </div>
+    </div>
   </div>
 
   <div class="panel">
@@ -4251,7 +4334,7 @@ function buildPaieMoisListHTML(mois){
       </table>
       <table class="signature-table">
         <tr><td><div class="sig-label">Le Comptable</div><div class="sig-line">Signature</div></td>
-        <td style="text-align:right;"><div class="sig-label">Le Directeur${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
+        <td style="text-align:right;"><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line" style="margin-left:auto;">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -4339,7 +4422,7 @@ function buildReceiptHTML(paiement){
         <tr><td>Frais de scolarité annuel</td><td>${fmt(frais)}</td></tr>
         <tr class="highlight"><td>Reste à payer</td><td>${reste>0?fmt(reste):(reste<0?'Excédent de '+fmt(-reste):'Soldé')}</td></tr>
       </table>
-      <div class="signature">Signature / Cachet du Directeur</div>
+      <div class="signature">Signature / Cachet du ${esc(PARAMS.directeurTitre||'Directeur')}</div>
     </div>
   `;
 }
@@ -4450,7 +4533,7 @@ function buildBulletinHTML(eleveId, trimestre){
             <div class="sig-line">Signature</div>
           </td>
           <td style="text-align:right;">
-            <div class="sig-label">Le Directeur${directeurNom? ' : '+esc(directeurNom) : ''}</div>
+            <div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${directeurNom? ' : '+esc(directeurNom) : ''}</div>
             <div class="sig-line" style="margin-left:auto;">Signature / Cachet</div>
           </td>
         </tr>
@@ -4565,7 +4648,7 @@ function buildDeliberationBlancHTML(classe, examenBlancId, decisionCle){
       <p class="bulletin-eleve-line" style="text-align:left;margin-top:14px;">${texteFin}</p>
 
       <table class="signature-table">
-        <tr><td><div class="sig-label">Le Directeur${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line">Signature / Cachet</div></td></tr>
+        <tr><td><div class="sig-label">Le ${esc(PARAMS.directeurTitre||'Directeur')}${PARAMS.directeurNom?' : '+esc(PARAMS.directeurNom):''}</div><div class="sig-line">Signature / Cachet</div></td></tr>
       </table>
     </div>
   `;
@@ -5522,10 +5605,69 @@ function attachHandlers(){
       const f = new FormData(e.target);
       PARAMS.ponderationDevoirs = Number(f.get('ponderationDevoirs'))||0;
       PARAMS.ponderationComposition = Number(f.get('ponderationComposition'))||0;
+      PARAMS.directeurTitre = f.get('directeurTitre')||'Directeur';
       PARAMS.directeurNom = f.get('directeurNom')||'';
       PARAMS.directeurTelephone = f.get('directeurTelephone')||'';
-      PARAMS.lieuCarteScolaire = f.get('lieuCarteScolaire')||'';
       await saveParams(); showToast('Paramètres enregistrés'); render();
+    });
+
+    document.getElementById('form-carte-textes')?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      PARAMS.lieuCarteScolaire = f.get('lieuCarteScolaire')||'';
+      PARAMS.carte = {
+        titre: f.get('titre')||'Carte scolaire',
+        labelNe: f.get('labelNe')||"Né(e) le",
+        labelSexe: f.get('labelSexe')||'Sexe',
+        labelProfession: f.get('labelProfession')||'Profession',
+        labelClasse: f.get('labelClasse')||'Classe',
+        labelMatricule: f.get('labelMatricule')||'Matricule',
+        labelFaitA: f.get('labelFaitA')||'Fait à',
+        labelPersonnePrevenir: f.get('labelPersonnePrevenir')||'Personne à prévenir',
+        labelSignature: f.get('labelSignature')||'Signature',
+        texteFooterVerso: f.get('texteFooterVerso')||''
+      };
+      await saveParams(); showToast('Textes de la carte enregistrés'); render();
+    });
+
+    document.getElementById('input-cachet-signature')?.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 3*1024*1024){ showToast('Image trop lourde (max ~3 Mo).'); e.target.value=''; return; }
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        CACHET_SIGNATURE_DATA_URL = ev.target.result;
+        await saveCachetSignature();
+        showToast('Cachet/signature enregistré');
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('btn-retirer-cachet')?.addEventListener('click', async ()=>{
+      CACHET_SIGNATURE_DATA_URL = '';
+      await saveCachetSignature();
+      showToast('Cachet/signature retiré');
+      render();
+    });
+
+    document.getElementById('input-qr-personnalise')?.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 3*1024*1024){ showToast('Image trop lourde (max ~3 Mo).'); e.target.value=''; return; }
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        QR_PERSONNALISE_DATA_URL = ev.target.result;
+        await saveQrPersonnalise();
+        showToast('QR code personnalisé enregistré — il sera utilisé sur toutes les cartes');
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('btn-retirer-qr')?.addEventListener('click', async ()=>{
+      QR_PERSONNALISE_DATA_URL = '';
+      await saveQrPersonnalise();
+      showToast('QR personnalisé retiré — retour au QR généré automatiquement');
+      render();
     });
 
     document.getElementById('form-seuils-assiduite')?.addEventListener('submit', async (e)=>{
