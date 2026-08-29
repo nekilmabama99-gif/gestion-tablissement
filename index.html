@@ -424,12 +424,12 @@
     <p class="desc" style="text-align:center;margin-bottom:18px;">Ce logiciel est protégé. Entrez le nom de votre établissement et la clé de licence qui vous a été fournie.</p>
     <form id="form-activation" class="form-grid" style="grid-template-columns:1fr;">
       <div class="field"><label>Nom de l'établissement</label><input name="clientName" required autofocus placeholder="ex: Complexe Scolaire Sainte-Marie"></div>
-      <div class="field"><label>Clé de licence</label><input name="licenseKey" required placeholder="XXXXX-XXXXX-XXXXX-XXXXX" style="text-transform:uppercase;"></div>
+      <div class="field"><label>Clé de licence</label><textarea name="licenseKey" required placeholder="Collez ici la clé de licence transmise par le fournisseur" rows="3" style="font-family:monospace;font-size:11px;word-break:break-all;"></textarea></div>
       <button class="btn gold" type="submit">Activer</button>
     </form>
-    <p class="muted" id="erreur-activation" style="margin-top:10px;display:none;color:var(--red);text-align:center;">Nom d'établissement ou clé de licence incorrect(e).</p>
+    <p class="muted" id="erreur-activation" style="margin-top:10px;display:none;color:var(--red);text-align:center;">Nom d'établissement ou clé de licence incorrect(e), ou licence expirée.</p>
     <p class="muted" style="margin-top:22px;text-align:center;font-size:11px;">Pas de clé ? Contactez le fournisseur du logiciel.</p>
-    <p style="margin-top:14px;text-align:center;"><a href="#" id="lien-generateur-licence" style="font-size:11px;color:var(--line);text-decoration:underline;">Générateur de licences</a></p>
+
   </div>
 </div>
 
@@ -693,60 +693,67 @@ function showToast(msg){
 const STORAGE_PREFIX = 'gestion_ecole_';
 
 /* ---------- Licence / activation ----------
-   Fichier autonome sans serveur : cette protection dissuade la copie et
-   structure la vente (chaque établissement doit obtenir une clé), mais
-   n'est pas inviolable — une personne très technique pourrait lire ce code.
+   Signature asymétrique (ECDSA P-256) : ce fichier ne contient QUE la clé
+   PUBLIQUE, capable de vérifier une licence mais jamais d'en fabriquer une.
+   La clé privée qui sert à générer les licences reste exclusivement dans
+   l'outil séparé "generateur-licences.html", gardé chez le fournisseur et
+   jamais transmis aux clients. Même en lisant tout ce code source, personne
+   ne peut donc créer de fausse licence valide.
 */
-const LICENCE_SECRET = 'BAMA-GESTION-ETAB-2026'; // à changer avant de distribuer largement
-let ADMIN_PASSWORD_DEFAUT = 'bama-admin-2026';   // mot de passe par défaut du générateur de licences (modifiable ci-dessous)
-
+const LICENCE_PUBLIC_KEY_JWK = {"key_ops":["verify"],"ext":true,"kty":"EC","x":"vg0UPNg7Ae11XV-HpR1H5q3Tzcqn86Hgyepjp579LQw","y":"V7_8hYrirMEIcAN3-yJhofQ3KcxOHZ6AkGVrk4V1JQc","crv":"P-256"};
+let _cleLicencePubliquePromise = null;
+function obtenirClePublique(){
+  if(!_cleLicencePubliquePromise){
+    _cleLicencePubliquePromise = crypto.subtle.importKey(
+      'jwk', LICENCE_PUBLIC_KEY_JWK, { name:'ECDSA', namedCurve:'P-256' }, true, ['verify']
+    );
+  }
+  return _cleLicencePubliquePromise;
+}
 function normaliserTexte(s){
   return (s||'').trim().toUpperCase().replace(/\s+/g,' ');
 }
-function normaliserCle(s){
-  return (s||'').trim().toUpperCase().replace(/[\s-]/g,'');
+function b64urlVersBytes(s){
+  s = s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length % 4) s += '=';
+  const bin = atob(s);
+  return Uint8Array.from(bin, c=>c.charCodeAt(0));
 }
-async function calculerCleLicence(clientName){
-  const donnees = normaliserTexte(clientName) + '::' + LICENCE_SECRET;
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(donnees));
-  const hex = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
-  const court = hex.slice(0, 20);
-  return court.match(/.{1,5}/g).join('-');
-}
-function getAdminPassword(){
-  return storageGet('admin-licence-password') || ADMIN_PASSWORD_DEFAUT;
+async function decoderEtVerifierLicence(licenceBrute, clientName){
+  try{
+    const licence = (licenceBrute||'').trim().replace(/\s+/g,'');
+    const [payloadB64, sigB64] = licence.split('.');
+    if(!payloadB64 || !sigB64) return null;
+    const payloadBytes = b64urlVersBytes(payloadB64);
+    const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+    if(normaliserTexte(payload.n) !== normaliserTexte(clientName)) return null;
+    if(payload.exp && new Date(payload.exp).getTime() < Date.now()) return { expiree:true, payload };
+    const cle = await obtenirClePublique();
+    const sig = b64urlVersBytes(sigB64);
+    const ok = await crypto.subtle.verify(
+      { name:'ECDSA', hash:'SHA-256' }, cle, sig, new TextEncoder().encode(payloadB64)
+    );
+    return ok ? { valide:true, payload } : null;
+  }catch(e){ return null; }
 }
 function estActive(){
   const a = storageGet('activation-data');
-  return !!(a && a.clientName && a.key);
+  if(!(a && a.clientName && a.licence)) return false;
+  if(a.exp && new Date(a.exp).getTime() < Date.now()) return false;
+  return true;
 }
-async function activerLogiciel(clientName, cleSaisie){
-  const cleAttendue = await calculerCleLicence(clientName);
-  if(normaliserCle(cleSaisie) === normaliserCle(cleAttendue)){
-    await save('activation-data', { clientName: clientName.trim(), key: cleAttendue, activeLe: new Date().toISOString() });
+async function activerLogiciel(clientName, licenceSaisie){
+  const resultat = await decoderEtVerifierLicence(licenceSaisie, clientName);
+  if(resultat && resultat.valide){
+    await save('activation-data', {
+      clientName: clientName.trim(),
+      licence: (licenceSaisie||'').trim().replace(/\s+/g,''),
+      exp: resultat.payload.exp || null,
+      activeLe: new Date().toISOString()
+    });
     return true;
   }
   return false;
-}
-async function ouvrirGenerateurLicences(){
-  const saisie = prompt('Mot de passe du générateur de licences (réservé au fournisseur) :');
-  if(saisie === null) return;
-  if(saisie !== getAdminPassword()){
-    alert('Mot de passe incorrect.');
-    return;
-  }
-  const nomClient = prompt("Nom exact de l'établissement client (tel qu'il devra le saisir à l'activation) :");
-  if(!nomClient || !nomClient.trim()) return;
-  const cle = await calculerCleLicence(nomClient);
-  prompt(`Clé de licence pour « ${nomClient.trim()} » — copiez-la (Ctrl+C) et transmettez-la avec le nom exact de l'établissement :`, cle);
-  const changerMdp = confirm('Voulez-vous changer le mot de passe du générateur de licences ?');
-  if(changerMdp){
-    const nouveau = prompt('Nouveau mot de passe du générateur :', '');
-    if(nouveau && nouveau.trim()){
-      await save('admin-licence-password', nouveau.trim());
-      alert('Mot de passe du générateur mis à jour.');
-    }
-  }
 }
 
 function storageGet(key){
@@ -3772,9 +3779,8 @@ function renderParametres(){
 
   return `
   <div class="panel">
-    <div class="panel-head"><h3>Licence du logiciel</h3><p class="desc" style="width:100%;">Établissement activé : <strong>${esc(activation?.clientName || '—')}</strong>${activation?.activeLe ? ' — depuis le '+new Date(activation.activeLe).toLocaleDateString('fr-FR') : ''}.</p></div>
-    <button class="btn secondary small" id="btn-ouvrir-generateur-licence">Générateur de licences (réservé au fournisseur)</button>
-    <p class="muted" style="margin-top:8px;">Pour vendre ce logiciel à un autre établissement, transmettez-lui une copie de ce fichier ainsi qu'une clé de licence générée ici avec le nom exact de son établissement.</p>
+    <div class="panel-head"><h3>Licence du logiciel</h3><p class="desc" style="width:100%;">Établissement activé : <strong>${esc(activation?.clientName || '—')}</strong>${activation?.activeLe ? ' — depuis le '+new Date(activation.activeLe).toLocaleDateString('fr-FR') : ''}${activation?.exp ? ' — valable jusqu\'au '+new Date(activation.exp).toLocaleDateString('fr-FR') : ''}.</p></div>
+    <p class="muted" style="margin-top:8px;">Pour vendre ce logiciel à un autre établissement, transmettez-lui une copie de ce fichier. La clé de licence se génère uniquement depuis l'outil « generateur-licences.html », gardé par le fournisseur — elle ne peut plus être créée depuis l'application elle-même.</p>
   </div>
 
   <div class="panel">
@@ -5369,7 +5375,6 @@ function attachHandlers(){
   }
 
   if(currentTab==='parametres'){
-    document.getElementById('btn-ouvrir-generateur-licence')?.addEventListener('click', ouvrirGenerateurLicences);
     document.getElementById('form-utilisateur')?.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const f = new FormData(e.target);
@@ -6040,10 +6045,6 @@ async function verifierActivationEtDemarrer(){
     } else {
       document.getElementById('erreur-activation').style.display = 'block';
     }
-  });
-  document.getElementById('lien-generateur-licence').addEventListener('click', (e)=>{
-    e.preventDefault();
-    ouvrirGenerateurLicences();
   });
 }
 
